@@ -5,7 +5,7 @@
 
 /**
  *
- * @author singh
+ * @author Jas singh
  */
 import java.text.SimpleDateFormat; // For formatting dates into strings.
 import java.util.Date;             // Represents a specific instant in time.

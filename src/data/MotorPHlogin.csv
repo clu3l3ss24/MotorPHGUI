@@ -1,4 +1,4 @@
-Username ,Last Name,First Name,Acess,Position,Immediate Supervisor
+Employee Number ,Last Name,First Name,Acess,Position,Immediate Supervisor
 10001,Garcia,Manuel III,Supervisor,Chief Executive Officer,N/A
 10002,Lim,Antonio,Supervisor,Chief Operating Officer,"Garcia, Manuel III"
 10003,Aquino,Bianca Sofia,Supervisor,Chief Finance Officer,"Garcia, Manuel III"

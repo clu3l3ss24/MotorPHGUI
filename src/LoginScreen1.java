@@ -4,8 +4,9 @@
  */
 
 /**
+ *login page user name is the employee number with a default password ( First initial for the last name Uppercase + employee number)
  *
- * @author singh
+ * @author Jas Singh
  */
 
 import java.io.BufferedReader;
@@ -123,7 +124,7 @@ public class LoginScreen1 extends javax.swing.JFrame {
     }// </editor-fold>//GEN-END:initComponents
 
     private void jButtonLoginActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButtonLoginActionPerformed
-        // TODO add your handling code here:
+        //
         String username = jTextFieldUsername.getText().trim();
         String passwordInput = new String(jPasswordField.getPassword()).trim();
         
@@ -146,7 +147,7 @@ public class LoginScreen1 extends javax.swing.JFrame {
     }//GEN-LAST:event_jButtonLoginActionPerformed
 
     private void jPasswordFieldActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jPasswordFieldActionPerformed
-        // TODO add your handling code here:
+        // 
     }//GEN-LAST:event_jPasswordFieldActionPerformed
     /**
      * @param args the command line arguments

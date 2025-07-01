@@ -4,25 +4,50 @@
  */
 
 /**
+ *login page user name is the employee number with a default password ( First initial for the last name Uppercase + employee number)
  *
- * @author singh
+ * @author Jas Singh
  */
 
-import java.awt.Font;
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.util.HashMap;
+import java.util.Map;
 import javax.swing.JOptionPane;
 
 public class LoginScreen1 extends javax.swing.JFrame {
+
+    private Map<String, String> userCredentials = new HashMap<>();
+    private Map<String, String> userFullNames = new HashMap<>();
     
-    private final String DEFAULT_USERNAME = "admin";
-    private final String DEFAULT_PASSWORD = "12345";
 
-
-    /**
-     * Creates new form LoginScreen1
-     */
     public LoginScreen1() {
         initComponents();
+        loadCredentialsFromCSV("src/data/MotorPHlogin.csv"); // Path to CSV
     }
+
+    private void loadCredentialsFromCSV(String filename) {
+        try (BufferedReader br = new BufferedReader(new FileReader(filename))) {
+            String line;
+            br.readLine(); // skip header
+            while ((line = br.readLine()) != null) {
+                String[] values = line.split(",");
+                if (values.length > 3) {
+                    String empNum = values[0].trim();
+                    String lastName = values[1].trim();
+                    String firstName = values[2].trim();
+                    
+                    String username = empNum;
+                    String password = lastName.substring(0, 1).toUpperCase() + empNum;
+                    userCredentials.put(username, password);
+                    userFullNames.put(username, firstName + " " + lastName);
+                }
+            }
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(this, "Error loading credentials: " + e.getMessage());
+        }
+    }
+
 
     /**
      * This method is called from within the constructor to initialize the form.
@@ -99,67 +124,55 @@ public class LoginScreen1 extends javax.swing.JFrame {
     }// </editor-fold>//GEN-END:initComponents
 
     private void jButtonLoginActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButtonLoginActionPerformed
-        // TODO add your handling code here:
-        String username = jTextFieldUsername.getText();
-        String password = jPasswordField.getText();
+        //
+        String username = jTextFieldUsername.getText().trim();
+        String passwordInput = new String(jPasswordField.getPassword()).trim();
         
-  if (username.equals("admin") && password.equals("1234")) {
-        JOptionPane.showMessageDialog(this, "Login Successful!");
-        
-        //Open MainMenu screen
-        MainMenu main = new MainMenu();
-        main.setVisible(true);  //show main screen
-        main.setLocationRelativeTo(null); //Center the screen (optional)
-        
-        this.dispose(); //close the log in screen
-    }else {
-        JOptionPane.showMessageDialog(this, "Invalid username or password.", "Login Failed", JOptionPane.ERROR_MESSAGE);
-        
-        //Clear the textfields
-        jTextFieldUsername.setText("");
-        jPasswordField.setText("");
-        }         
+
+  if (userCredentials.containsKey(username) && userCredentials.get(username).equals(passwordInput)) { 
+      String fullName = getFullNameFromUsername(username);
+    JOptionPane.showMessageDialog(this, "Login Successful!");
+            
+    
+    // Open MainMenu screen
+        MainMenu main = new MainMenu(fullName, passwordInput); 
+        main.setVisible(true);
+        main.setLocationRelativeTo(null);
+        this.dispose(); // close login screen
+} else {
+    JOptionPane.showMessageDialog(this, "Invalid username or password.", "Login Failed", JOptionPane.ERROR_MESSAGE);
+    jTextFieldUsername.setText("");
+    jPasswordField.setText("");
+}         
     }//GEN-LAST:event_jButtonLoginActionPerformed
 
     private void jPasswordFieldActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jPasswordFieldActionPerformed
-        // TODO add your handling code here:
+        // 
     }//GEN-LAST:event_jPasswordFieldActionPerformed
-
     /**
      * @param args the command line arguments
      */
-    public static void main(String args[]) {
+    private String getFullNameFromUsername(String username) {
+        return userFullNames.getOrDefault(username, "Unknown User");
+}
         /* Set the Nimbus look and feel */
         //<editor-fold defaultstate="collapsed" desc=" Look and feel setting code (optional) ">
         /* If Nimbus (introduced in Java SE 6) is not available, stay with the default look and feel.
          * For details see http://download.oracle.com/javase/tutorial/uiswing/lookandfeel/plaf.html 
          */
-        try {
-            for (javax.swing.UIManager.LookAndFeelInfo info : javax.swing.UIManager.getInstalledLookAndFeels()) {
-                if ("Nimbus".equals(info.getName())) {
-                    javax.swing.UIManager.setLookAndFeel(info.getClassName());
-                    break;
-                }
-            }
-        } catch (ClassNotFoundException ex) {
-            java.util.logging.Logger.getLogger(LoginScreen1.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
-        } catch (InstantiationException ex) {
-            java.util.logging.Logger.getLogger(LoginScreen1.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
-        } catch (IllegalAccessException ex) {
-            java.util.logging.Logger.getLogger(LoginScreen1.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
-        } catch (javax.swing.UnsupportedLookAndFeelException ex) {
-            java.util.logging.Logger.getLogger(LoginScreen1.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
-        }
+        
         //</editor-fold>
+ 
+         public static void main(String[] args) {
+        java.awt.EventQueue.invokeLater(() -> {
+            new LoginScreen1().setVisible(true);
+        });
+    
+}
+
 
         /* Create and display the form */
-        java.awt.EventQueue.invokeLater(new Runnable() {
-            public void run() {
-                new LoginScreen1().setVisible(true);
-            }
-        });
-    }
-
+     
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JButton jButtonLogin;
     private javax.swing.JLabel jLabelLogin2;
@@ -172,4 +185,6 @@ public class LoginScreen1 extends javax.swing.JFrame {
     private javax.swing.JLabel loginLogo;
     private javax.swing.JLabel textLogo;
     // End of variables declaration//GEN-END:variables
+
+    
 }

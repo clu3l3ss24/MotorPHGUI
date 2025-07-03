@@ -17,37 +17,38 @@ import javax.swing.JOptionPane;
 
 public class LoginScreen1 extends javax.swing.JFrame {
 
-    private Map<String, String> userCredentials = new HashMap<>();
-    private Map<String, String> userFullNames = new HashMap<>();
+    private Map<String, User> users = new HashMap<>();
     
 
     public LoginScreen1() {
         initComponents();
-        loadCredentialsFromCSV("src/data/MotorPHlogin.csv"); // Path to CSV
+        loadUsersFromCSV("src/data/MotorPHlogin.csv"); // Path to CSV
     }
 
-    private void loadCredentialsFromCSV(String filename) {
-        try (BufferedReader br = new BufferedReader(new FileReader(filename))) {
-            String line;
-            br.readLine(); // skip header
-            while ((line = br.readLine()) != null) {
-                String[] values = line.split(",");
-                if (values.length > 3) {
-                    String empNum = values[0].trim();
-                    String lastName = values[1].trim();
-                    String firstName = values[2].trim();
-                    
-                    String username = empNum;
-                    String password = lastName.substring(0, 1).toUpperCase() + empNum;
-                    userCredentials.put(username, password);
-                    userFullNames.put(username, firstName + " " + lastName);
-                }
+    private void loadUsersFromCSV(String filename) {
+    try (BufferedReader br = new BufferedReader(new FileReader(filename))) {
+        String line;
+        br.readLine(); // skip header
+        while ((line = br.readLine()) != null) {
+            String[] values = line.split(",");
+            if (values.length >= 6) {
+                String empNum = values[0].trim();
+                String lastName = values[1].trim();
+                String firstName = values[2].trim();
+                String accessLevel = values[3].trim();
+                String position = values[4].trim();
+                String supervisor = values[5].trim();
+                String fullName = firstName + " " + lastName;
+
+                User user = new User(empNum, fullName, accessLevel, position, supervisor);
+                users.put(empNum, user);
             }
-        } catch (Exception e) {
-            JOptionPane.showMessageDialog(this, "Error loading credentials: " + e.getMessage());
         }
+    } catch (Exception e) {
+        JOptionPane.showMessageDialog(this, "Error loading credentials: " + e.getMessage());
     }
-
+}
+    
 
     /**
      * This method is called from within the constructor to initialize the form.
@@ -124,26 +125,36 @@ public class LoginScreen1 extends javax.swing.JFrame {
     }// </editor-fold>//GEN-END:initComponents
 
     private void jButtonLoginActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButtonLoginActionPerformed
-        //
-        String username = jTextFieldUsername.getText().trim();
+        String empNum = jTextFieldUsername.getText().trim();
         String passwordInput = new String(jPasswordField.getPassword()).trim();
-        
 
-  if (userCredentials.containsKey(username) && userCredentials.get(username).equals(passwordInput)) { 
-      String fullName = getFullNameFromUsername(username);
-    JOptionPane.showMessageDialog(this, "Login Successful!");
-            
-    
-    // Open MainMenu screen
-        MainMenu main = new MainMenu(fullName, passwordInput); 
-        main.setVisible(true);
-        main.setLocationRelativeTo(null);
-        this.dispose(); // close login screen
-} else {
-    JOptionPane.showMessageDialog(this, "Invalid username or password.", "Login Failed", JOptionPane.ERROR_MESSAGE);
-    jTextFieldUsername.setText("");
-    jPasswordField.setText("");
-}         
+    //Debug: Print what the user entered
+    System.out.println("Entered empNum: " + empNum);
+    System.out.println("Entered password: " + passwordInput);
+
+    if (users.containsKey(empNum)) {
+        User user = users.get(empNum);
+
+        //Debug: What the system expects
+        String lastName = user.getFullName().split(" ")[1]; // Assumes "First Last"
+        String expectedPassword = lastName.substring(0, 1).toUpperCase() + empNum;
+
+        System.out.println("Found user: " + user.getFullName());
+        System.out.println("Expected password: " + expectedPassword);
+
+        if (passwordInput.equals(expectedPassword)) {
+            JOptionPane.showMessageDialog(this, "Login Successful! Welcome " + user.getFullName());
+
+            MainMenu main = new MainMenu(user); // This will work once MainMenu constructor is fixed
+            main.setVisible(true);
+            main.setLocationRelativeTo(null);
+            this.dispose();
+        } else {
+            JOptionPane.showMessageDialog(this, "❌ Incorrect password.");
+        }
+    } else {
+        JOptionPane.showMessageDialog(this, "❌ Employee number not found.");
+    }
     }//GEN-LAST:event_jButtonLoginActionPerformed
 
     private void jPasswordFieldActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jPasswordFieldActionPerformed
@@ -152,9 +163,7 @@ public class LoginScreen1 extends javax.swing.JFrame {
     /**
      * @param args the command line arguments
      */
-    private String getFullNameFromUsername(String username) {
-        return userFullNames.getOrDefault(username, "Unknown User");
-}
+    
         /* Set the Nimbus look and feel */
         //<editor-fold defaultstate="collapsed" desc=" Look and feel setting code (optional) ">
         /* If Nimbus (introduced in Java SE 6) is not available, stay with the default look and feel.

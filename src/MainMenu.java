@@ -19,6 +19,7 @@ import java.time.LocalDate;        // Modern Java API for handling dates.
  */
 public class MainMenu extends javax.swing.JFrame {
       private String fullName;
+      private User loggedInUser;
     
      // Member variables to hold instances of other GUI forms.
     // These forms are instantiated once and can be shown/hidden as needed.
@@ -39,10 +40,31 @@ public class MainMenu extends javax.swing.JFrame {
         initComponents();
         jLabelTitle2.setText("Welcome, " + fullName);
     }
+    
+    public MainMenu(User user) {
+    initComponents();
+    this.loggedInUser = user;
+    this.fullName = user.getFullName();
+    jLabelTitle2.setText("Welcome, " + fullName);
 
+    // 🔒 Role-based access control
+    String access = user.getAccessLevel();
 
+    if (access.equalsIgnoreCase("Employee")) {
+        jButtonEmployee.setVisible(false);
+    }
 
- 
+    if (access.equalsIgnoreCase("Supervisor")) {
+        jButtonEmployee.setVisible(false);
+    }
+
+    if (access.equalsIgnoreCase("IT")) {
+        // Example: IT can’t view payslip
+        jButtonPayslip.setVisible(false);
+    }
+
+    // HR has full access; no buttons hidden
+}
 
     /**
      * This method is called from within the constructor to initialize the form.

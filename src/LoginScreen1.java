@@ -23,6 +23,7 @@ public class LoginScreen1 extends javax.swing.JFrame {
 
     public LoginScreen1() {
         initComponents();
+        getRootPane().setDefaultButton(jButtonLogin);
         loadCredentialsFromCSV("src/data/MotorPHlogin.csv"); // Path to CSV
     }
 
@@ -135,7 +136,7 @@ public class LoginScreen1 extends javax.swing.JFrame {
             
     
     // Open MainMenu screen
-        MainMenu main = new MainMenu(fullName, passwordInput); 
+        MainMenu main = new MainMenu(username, fullName, passwordInput); 
         main.setVisible(true);
         main.setLocationRelativeTo(null);
         this.dispose(); // close login screen

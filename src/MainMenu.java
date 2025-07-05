@@ -7,19 +7,24 @@
  *
  * @author Singh, Jas, Ransel
  */
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
+import com.opencsv.CSVReader; // Added for OpenCSV functionality
+import com.opencsv.CSVWriter; // Added for OpenCSV functionality
+import com.opencsv.exceptions.CsvException; // Added for OpenCSV exceptions
+
 import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
-import java.io.IOException; 
+import java.io.IOException;
 import java.text.SimpleDateFormat; // For formatting dates into strings.
 import java.util.Date;             // Represents a specific instant in time.
 import javax.swing.JOptionPane;    // Provides standard dialog boxes for user interaction.
 import java.time.LocalDate;        // Modern Java API for handling dates.
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException; // Added for parsing time
+import java.util.ArrayList; // Added for handling lists of lines
 import java.util.Arrays;
+import java.util.List; // sAdded for handling lists of lines
 
 /**
  * The `MainMenu` class represents the main application window.
@@ -29,16 +34,13 @@ import java.util.Arrays;
 public class MainMenu extends javax.swing.JFrame {
       private String employeeId;
       private String fullName;
-    
+
      // Member variables to hold instances of other GUI forms.
     // These forms are instantiated once and can be shown/hidden as needed.
-    
-    EmployeeTable femptable = new EmployeeTable(); // Instance of the Employee Table window.
-    Payslip fpayslip = new Payslip();             // Instance of the Payslip generation window.
-    Attendance fattendance = new Attendance();     // Instance of the Attendance tracking window.
-// Instance of the Attendance tracking window.
-// Instance of the Attendance tracking window.
-// Instance of the Attendance tracking window.
+    // --- START NOTE: These are commented out as new instances are created in action listeners ---
+    // EmployeeTable femptable = new EmployeeTable();
+    // Payslip fpayslip = new Payslip();
+    // Attendance fattendance = new Attendance();
 
     /**
      * Constructor for `MainMenu`.
@@ -53,9 +55,6 @@ public class MainMenu extends javax.swing.JFrame {
         this.setLocationRelativeTo(null);
     }
 
-
-
- 
 
     /**
      * This method is called from within the constructor to initialize the form.
@@ -259,18 +258,18 @@ public class MainMenu extends javax.swing.JFrame {
         String todayStr = today.format(dateFormatter);
 
         // First, check if the user has already timed in today
-        try (BufferedReader br = new BufferedReader(new FileReader(filePath))) {
-            String line;
-            br.readLine(); // Skip header row
-            while ((line = br.readLine()) != null) {
-                String[] values = line.split(",");
+        try (CSVReader csvReader = new CSVReader(new FileReader(filePath))) {
+            csvReader.readNext(); // Skip header row
+
+            String[] values;
+            while ((values = csvReader.readNext()) != null) {
                 if (values.length > 3 && values[0].trim().equals(this.employeeId) && values[3].trim().equals(todayStr)) {
                     JOptionPane.showMessageDialog(this, "You have already timed in today at " + values[4].trim(), "Action Denied", JOptionPane.WARNING_MESSAGE);
                     return; // Exit the method
                 }
             }
-        } catch (IOException e) {
-            JOptionPane.showMessageDialog(this, "Error reading attendance file. Check file path.", "Error", JOptionPane.ERROR_MESSAGE);
+        } catch (IOException | CsvException e) {
+            JOptionPane.showMessageDialog(this, "Error reading attendance file. Check file path: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
             e.printStackTrace();
             return;
         }
@@ -291,25 +290,23 @@ public class MainMenu extends javax.swing.JFrame {
             csvFirstName = this.fullName; // Fallback for single names
         }
 
-        try (FileWriter fw = new FileWriter(filePath, true); // true for append mode
-                 BufferedWriter bw = new BufferedWriter(fw)) {
+        try (CSVWriter csvWriter = new CSVWriter(new FileWriter(filePath, true))) { // true for append mode
 
-            String newRecord = String.join(",",
-                    this.employeeId,
-                    csvLastName,
-                    csvFirstName,
-                    todayStr,
-                    timeInStr,
-                    "00:00" // Placeholder for Time OUT as requested
-            );
+            String[] newRecord = {
+                this.employeeId,
+                csvLastName,
+                csvFirstName,
+                todayStr,
+                timeInStr,
+                "00:00" // Placeholder for Time OUT
+            };
 
-            bw.write(newRecord);
-            bw.newLine(); // Always add a newline after the record
+            csvWriter.writeNext(newRecord); // Write the array as a CSV row
 
             JOptionPane.showMessageDialog(this, "Time In Recorded: " + timeInStr, "Success", JOptionPane.INFORMATION_MESSAGE);
 
         } catch (IOException e) {
-            JOptionPane.showMessageDialog(this, "Error writing to attendance file.", "Error", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(this, "Error writing to attendance file: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
             e.printStackTrace();
         }
     }
@@ -335,36 +332,49 @@ public class MainMenu extends javax.swing.JFrame {
         boolean alreadyTimedOut = false;
         boolean updateSuccess = false;
 
-        try (BufferedReader reader = new BufferedReader(new FileReader(inputFile));
-             BufferedWriter writer = new BufferedWriter(new FileWriter(tempFile))) {
+        try (CSVReader csvReader = new CSVReader(new FileReader(inputFile));
+             CSVWriter csvWriter = new CSVWriter(new FileWriter(tempFile))) {
 
-            String currentLine;
-            // Read and write header to the temporary file
-            String header = reader.readLine();
+            String[] header = csvReader.readNext(); // Read header
             if (header != null) {
-                writer.write(header + System.lineSeparator());
+                csvWriter.writeNext(header); // Write header to temp file
             }
 
-            // Process each record
-            while ((currentLine = reader.readLine()) != null) {
-                String[] values = currentLine.split(",");
+            String[] values;
+            while ((values = csvReader.readNext()) != null) {
                 // Check if it's the correct employee, for today's date
                 if (values.length > 5 && values[0].trim().equals(this.employeeId) && values[3].trim().equals(todayStr)) {
                     recordFound = true;
                     // Check if they have not timed out yet
                     if (values[5].trim().equals("00:00")) {
-                        values[5] = timeOutStr; // Update the Time OUT value
-                        currentLine = String.join(",", values); // Rebuild the line
-                        updateSuccess = true;
+                        // Validate if Time In has actually occurred and is before current time
+                        try {
+                            LocalTime recordedTimeIn = LocalTime.parse(values[4].trim(), timeFormatter);
+                            if (timeOut.isAfter(recordedTimeIn)) { // Check if timeOut is AFTER timeIn
+                                values[5] = timeOutStr; // Update the Time OUT value
+                                updateSuccess = true;
+                                JOptionPane.showMessageDialog(this, "Time Out Recorded: " + timeOutStr, "Success", JOptionPane.INFORMATION_MESSAGE);
+                            } else {
+                                JOptionPane.showMessageDialog(this, "Time Out cannot be before Time In.", "Error", JOptionPane.ERROR_MESSAGE);
+                                // Set updateSuccess to false if timeOut is not valid
+                                updateSuccess = false;
+                                // We should not proceed with the update if Time Out is invalid,
+                                // but we still need to write the original line to tempFile.
+                            }
+                        } catch (DateTimeParseException e) {
+                            JOptionPane.showMessageDialog(this, "Error parsing Time In: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+                            e.printStackTrace();
+                            // Keep updateSuccess false
+                        }
                     } else {
                         // The Time Out is already filled
                         alreadyTimedOut = true;
                     }
                 }
-                writer.write(currentLine + System.lineSeparator());
+                csvWriter.writeNext(values); // Write modified or original values array to temp file
             }
-        } catch (IOException e) {
-            JOptionPane.showMessageDialog(this, "Error processing attendance file.", "Error", JOptionPane.ERROR_MESSAGE);
+        } catch (IOException | CsvException e) { // Catch both IOException and CsvException
+            JOptionPane.showMessageDialog(this, "Error processing attendance file: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
             e.printStackTrace();
             return;
         }
@@ -373,30 +383,31 @@ public class MainMenu extends javax.swing.JFrame {
         if (!recordFound) {
             JOptionPane.showMessageDialog(this, "Time In record for today not found. Please Time IN first.", "Action Denied", JOptionPane.WARNING_MESSAGE);
             tempFile.delete(); // Clean up the temporary file
-        } else if (alreadyTimedOut) {
+        } else if (alreadyTimedOut && !updateSuccess) { // Check updateSuccess to avoid double message if timeout was invalid
             JOptionPane.showMessageDialog(this, "You have already timed out today.", "Action Denied", JOptionPane.WARNING_MESSAGE);
             tempFile.delete(); // Clean up the temporary file
-        } else if (updateSuccess) {
+        } else if (updateSuccess) { // Only proceed if an update was genuinely successful and valid
             // Replace the original file with the updated temporary file
             if (inputFile.delete()) {
                 if (!tempFile.renameTo(inputFile)) {
                     JOptionPane.showMessageDialog(this, "Error: Could not update the attendance file.", "Error", JOptionPane.ERROR_MESSAGE);
-                } else {
-                    JOptionPane.showMessageDialog(this, "Time Out Recorded: " + timeOutStr, "Success", JOptionPane.INFORMATION_MESSAGE);
                 }
+                // Success message already shown inside try block
             } else {
                 JOptionPane.showMessageDialog(this, "Error: Could not access the attendance file.", "Error", JOptionPane.ERROR_MESSAGE);
             }
         } else {
-            // This case occurs if a record was found but not updated for some reason
+            // This case occurs if a record was found but not updated due to invalid Time Out, or other non-success paths.
+            // tempFile should be deleted to clean up.
             tempFile.delete();
         }
-    }	
+    }
 
     private void jButtonEmployeeActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButtonEmployeeActionPerformed
         // TODO add your handling code here:
+        EmployeeTable femptable = new EmployeeTable(); // Create new instance here
         femptable.setVisible(true);
-        
+
     }//GEN-LAST:event_jButtonEmployeeActionPerformed
 
     private void jButtonPayslipActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButtonPayslipActionPerformed
@@ -430,14 +441,14 @@ public class MainMenu extends javax.swing.JFrame {
             // 2. Make the LoginScreen1 visible
             loginScreen.setVisible(true);
 
-            // 3. Center the login screen on the monitor
-            loginScreen.setLocationRelativeTo(null);
+            // 3. Center the login screen on the monitor (already handled in LoginScreen1 constructor)
+            // loginScreen.setLocationRelativeTo(null);
 
             // 4. Close the current MainMenu screen
             this.dispose(); // 'this' refers to the current MainMenu frame
         }
     }//GEN-LAST:event_jButtonExit2ActionPerformed
-    
+
     private void jButtonAttendanceActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButtonAttendanceActionPerformed
         String input = JOptionPane.showInputDialog(
         this,
@@ -466,7 +477,7 @@ public class MainMenu extends javax.swing.JFrame {
         /* Set the Nimbus look and feel */
         //<editor-fold defaultstate="collapsed" desc=" Look and feel setting code (optional) ">
         /* If Nimbus (introduced in Java SE 6) is not available, stay with the default look and feel.
-         * For details see http://download.oracle.com/javase/tutorial/uiswing/lookandfeel/plaf.html 
+         * For details see http://download.oracle.com/javase/tutorial/uiswing/lookandfeel/plaf.html
          */
         try {
             for (javax.swing.UIManager.LookAndFeelInfo info : javax.swing.UIManager.getInstalledLookAndFeels()) {

@@ -6,11 +6,14 @@
 /**
  *login page user name is the employee number with a default password ( First initial for the last name Uppercase + employee number)
  *
- * @author Jas Singh
+ * @author Jas, Ransel
  */
 
-import java.io.BufferedReader;
-import java.io.FileReader;
+import com.opencsv.CSVReader;         // Added for OpenCSV functionality
+import com.opencsv.exceptions.CsvException; // Added for OpenCSV exceptions
+
+import java.io.FileReader;           // Only FileReader is needed, no BufferedReader
+import java.io.IOException;          // Keep for general I/O errors
 import java.util.HashMap;
 import java.util.Map;
 import javax.swing.JOptionPane;
@@ -19,33 +22,37 @@ public class LoginScreen1 extends javax.swing.JFrame {
 
     private Map<String, String> userCredentials = new HashMap<>();
     private Map<String, String> userFullNames = new HashMap<>();
-    
+
 
     public LoginScreen1() {
         initComponents();
         getRootPane().setDefaultButton(jButtonLogin);
         loadCredentialsFromCSV("src/data/MotorPHlogin.csv"); // Path to CSV
+        // Highlight 1: Center the login screen on the monitor when instantiated
+        this.setLocationRelativeTo(null);
     }
 
     private void loadCredentialsFromCSV(String filename) {
-        try (BufferedReader br = new BufferedReader(new FileReader(filename))) {
-            String line;
-            br.readLine(); // skip header
-            while ((line = br.readLine()) != null) {
-                String[] values = line.split(",");
+        try (CSVReader csvReader = new CSVReader(new FileReader(filename))) {
+            csvReader.readNext(); // Skip header row
+
+            String[] values;
+            while ((values = csvReader.readNext()) != null) {
+                // Ensure sufficient columns exist before accessing
                 if (values.length > 3) {
                     String empNum = values[0].trim();
                     String lastName = values[1].trim();
                     String firstName = values[2].trim();
-                    
+
                     String username = empNum;
                     String password = lastName.substring(0, 1).toUpperCase() + empNum;
                     userCredentials.put(username, password);
                     userFullNames.put(username, firstName + " " + lastName);
                 }
             }
-        } catch (Exception e) {
+        } catch (IOException | CsvException e) { // Catch both IOException and CsvException
             JOptionPane.showMessageDialog(this, "Error loading credentials: " + e.getMessage());
+            e.printStackTrace(); // Added for debugging
         }
     }
 
@@ -125,55 +132,69 @@ public class LoginScreen1 extends javax.swing.JFrame {
     }// </editor-fold>//GEN-END:initComponents
 
     private void jButtonLoginActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButtonLoginActionPerformed
-        //
         String username = jTextFieldUsername.getText().trim();
         String passwordInput = new String(jPasswordField.getPassword()).trim();
-        
 
-  if (userCredentials.containsKey(username) && userCredentials.get(username).equals(passwordInput)) { 
-      String fullName = getFullNameFromUsername(username);
-    JOptionPane.showMessageDialog(this, "Login Successful!");
-            
-    
-    // Open MainMenu screen
-        MainMenu main = new MainMenu(username, fullName, passwordInput); 
-        main.setVisible(true);
-        main.setLocationRelativeTo(null);
-        this.dispose(); // close login screen
-} else {
-    JOptionPane.showMessageDialog(this, "Invalid username or password.", "Login Failed", JOptionPane.ERROR_MESSAGE);
-    jTextFieldUsername.setText("");
-    jPasswordField.setText("");
-}         
+
+        if (userCredentials.containsKey(username) && userCredentials.get(username).equals(passwordInput)) {
+            String fullName = getFullNameFromUsername(username);
+            JOptionPane.showMessageDialog(this, "Login Successful!");
+
+            // Open MainMenu screen
+            MainMenu main = new MainMenu(username, fullName, passwordInput);
+            main.setVisible(true);
+            main.setLocationRelativeTo(null);
+            this.dispose(); // close login screen
+        } else {
+            JOptionPane.showMessageDialog(this, "Invalid username or password.", "Login Failed", JOptionPane.ERROR_MESSAGE);
+            jTextFieldUsername.setText("");
+            jPasswordField.setText("");
+        }
     }//GEN-LAST:event_jButtonLoginActionPerformed
 
     private void jPasswordFieldActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jPasswordFieldActionPerformed
-        // 
+        //
     }//GEN-LAST:event_jPasswordFieldActionPerformed
+
+    private String getFullNameFromUsername(String username) {
+        return userFullNames.getOrDefault(username, "Unknown User");
+    }
+
     /**
      * @param args the command line arguments
      */
-    private String getFullNameFromUsername(String username) {
-        return userFullNames.getOrDefault(username, "Unknown User");
-}
+    public static void main(String[] args) {
         /* Set the Nimbus look and feel */
         //<editor-fold defaultstate="collapsed" desc=" Look and feel setting code (optional) ">
         /* If Nimbus (introduced in Java SE 6) is not available, stay with the default look and feel.
-         * For details see http://download.oracle.com/javase/tutorial/uiswing/lookandfeel/plaf.html 
+         * For details see http://download.oracle.com/javase/tutorial/uiswing/lookandfeel/plaf.html
          */
-        
+        try {
+            for (javax.swing.UIManager.LookAndFeelInfo info : javax.swing.UIManager.getInstalledLookAndFeels()) {
+                if ("Nimbus".equals(info.getName())) {
+                    javax.swing.UIManager.setLookAndFeel(info.getClassName());
+                    break;
+                }
+            }
+        } catch (ClassNotFoundException ex) {
+            java.util.logging.Logger.getLogger(LoginScreen1.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
+        } catch (InstantiationException ex) {
+            java.util.logging.Logger.getLogger(LoginScreen1.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
+        } catch (IllegalAccessException ex) {
+            java.util.logging.Logger.getLogger(LoginScreen1.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
+        } catch (javax.swing.UnsupportedLookAndFeelException ex) {
+            java.util.logging.Logger.getLogger(LoginScreen1.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
+        }
         //</editor-fold>
- 
-         public static void main(String[] args) {
-        java.awt.EventQueue.invokeLater(() -> {
-            new LoginScreen1().setVisible(true);
-        });
-    
-}
-
 
         /* Create and display the form */
-     
+        java.awt.EventQueue.invokeLater(() -> {
+            new LoginScreen1().setVisible(true);
+            // Highlight 2: Removed duplicate setLocationRelativeTo(null) as it's now in the constructor.
+            // login.setLocationRelativeTo(null); // This line was a duplicate and is now handled in the constructor.
+        });
+    }
+
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JButton jButtonLogin;
     private javax.swing.JLabel jLabelLogin2;
@@ -187,5 +208,5 @@ public class LoginScreen1 extends javax.swing.JFrame {
     private javax.swing.JLabel textLogo;
     // End of variables declaration//GEN-END:variables
 
-    
+
 }

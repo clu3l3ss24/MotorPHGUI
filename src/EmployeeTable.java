@@ -90,37 +90,14 @@ public void enableAttendanceMode() {
     jLabelEmpInfo.setText("Employee Attendance");
     jButtonView.setText("View Attendance");
 
-    // Hide buttons by default
+    // Hide Update and Delete for everyone
     jButtonAdd.setVisible(false);
     jButtonUpdate.setVisible(false);
     jButtonDelete.setVisible(false);
 
-    if (loggedInUser.isIT()) {
-        jButtonUpdate.setVisible(true);
-        jButtonDelete.setVisible(true);
-    } else if (loggedInUser.isSupervisor()) {
-        // Only show Update button when supervisor selects a subordinate (see listener below)
-        jTableEmpTable.addMouseListener(new java.awt.event.MouseAdapter() {
-            public void mouseClicked(java.awt.event.MouseEvent evt) {
-                int row = jTableEmpTable.getSelectedRow();
-                if (row == -1) return;
+    // Supervisor logic removed — no more partial visibility
 
-                String empNum = jTableEmpTable.getValueAt(row, 0).toString().trim();
-                String supervisor = jTableEmpTable.getValueAt(row, 6).toString().trim();
-
-                boolean isSelf = empNum.equals(loggedInUser.getEmpNum());
-                boolean isSubordinate = supervisor.equalsIgnoreCase(loggedInUser.getFullName());
-
-                if (!isSelf && isSubordinate) {
-                    jButtonUpdate.setVisible(true);
-                } else {
-                    jButtonUpdate.setVisible(false);
-                }
-            }
-        });
-    }
-
-    loadFilteredEmployees(); // Show correct data
+    loadFilteredEmployees(); // Show correct filtered data
 }
 
     /**
@@ -502,7 +479,6 @@ public void enableAttendanceMode() {
         if (attendanceMode) {
             // Open UpdateAttendance instead of EditEmpInfo
             SwingUtilities.invokeLater(() -> {
-                new UpdateAttendance(String.valueOf(empNum), loggedInUser).setVisible(true);
             });
         } else {
             // Open regular Edit Employee window

@@ -217,5 +217,27 @@ public class AttendanceFileHandler {
 
     return records;
 }
-
+    
+    public static List<String[]> getRawCSV() {
+        List<String[]> data = new ArrayList<>();
+        try (CSVReader reader = new CSVReader(new FileReader(FILE_PATH))) {
+            String[] row;
+            while ((row = reader.readNext()) != null) {
+                data.add(row);
+            }
+        } catch (Exception e) {
+            System.err.println("Error loading raw CSV: " + e.getMessage());
+        }
+        return data;
+    }
+    
+    public static void overwriteCSV(List<String[]> allRows) {
+        try (com.opencsv.CSVWriter writer = new com.opencsv.CSVWriter(new java.io.FileWriter(FILE_PATH))) {
+            for (String[] row : allRows) {
+                writer.writeNext(row);
+            }
+        } catch (Exception e) {
+            System.err.println("Error saving attendance CSV: " + e.getMessage());
+        }
+    }
 }

@@ -4,11 +4,15 @@ import java.time.LocalDate;
 import javax.swing.JOptionPane;
 import java.util.List;
 import java.util.Map;
+import java.util.ArrayList;
 
 
 
 public class Attendance extends JFrame {
-    private String empNo;   
+    private String empNo;  
+    private User loggedInUser;
+    private boolean tableEditable = false;
+    private List<String[]> originalTableData = new ArrayList<>();
 
     public Attendance(String empNo) {
         this.empNo = empNo;
@@ -23,8 +27,9 @@ public class Attendance extends JFrame {
     }
     
     public Attendance(int empNum, User user) {
-        this(String.valueOf(empNum)); // reuse the existing constructor
-        // You can also store the User if you want to restrict roles later
+        this(String.valueOf(empNum));
+        this.loggedInUser = user;
+        applyUpdateButtonRules(); // Role-based visibility
     }
 
     // ✅ Fetch and Display Employee Name in jLabel3
@@ -84,6 +89,7 @@ public class Attendance extends JFrame {
         jLabel5 = new javax.swing.JLabel();
         checkAttendanceButton = new javax.swing.JButton();
         employeeIDLabel = new javax.swing.JLabel();
+        updateAttendanceButton = new javax.swing.JButton();
 
         jLabel2.setText("jLabel2");
 
@@ -149,12 +155,22 @@ public class Attendance extends JFrame {
                 checkAttendanceButtonActionPerformed(evt);
             }
         });
-        jPanel1.add(checkAttendanceButton, new org.netbeans.lib.awtextra.AbsoluteConstraints(501, 119, 281, -1));
+        jPanel1.add(checkAttendanceButton, new org.netbeans.lib.awtextra.AbsoluteConstraints(650, 120, 140, -1));
 
         employeeIDLabel.setFont(new java.awt.Font("Segoe UI", 1, 18)); // NOI18N
         employeeIDLabel.setForeground(new java.awt.Color(255, 255, 255));
         employeeIDLabel.setText("Employee ID: ");
         jPanel1.add(employeeIDLabel, new org.netbeans.lib.awtextra.AbsoluteConstraints(32, 115, 324, -1));
+
+        updateAttendanceButton.setBackground(new java.awt.Color(0, 102, 102));
+        updateAttendanceButton.setForeground(new java.awt.Color(255, 255, 255));
+        updateAttendanceButton.setText("Update Attendance");
+        updateAttendanceButton.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                updateAttendanceButtonActionPerformed(evt);
+            }
+        });
+        jPanel1.add(updateAttendanceButton, new org.netbeans.lib.awtextra.AbsoluteConstraints(490, 120, 150, -1));
 
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
         getContentPane().setLayout(layout);
@@ -202,6 +218,63 @@ public class Attendance extends JFrame {
 
     }//GEN-LAST:event_checkAttendanceButtonActionPerformed
 
+    private void updateAttendanceButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_updateAttendanceButtonActionPerformed
+        DefaultTableModel model = (DefaultTableModel) jTableAttendance.getModel();
+
+        if (!tableEditable) {
+            // Save original Time IN and Time OUT values
+            originalTableData.clear();
+            for (int row = 0; row < model.getRowCount(); row++) {
+                originalTableData.add(new String[]{
+                    model.getValueAt(row, 0).toString(), // Date
+                    model.getValueAt(row, 1).toString(), // Time IN
+                    model.getValueAt(row, 2).toString()  // Time OUT
+                });
+            }
+
+            // Enable editing only for Time IN and Time OUT
+            jTableAttendance.setDefaultEditor(Object.class, new javax.swing.DefaultCellEditor(new javax.swing.JTextField()) {
+                @Override
+                public boolean isCellEditable(java.util.EventObject e) {
+                    int col = jTableAttendance.getSelectedColumn();
+                    return col == 1 || col == 2; // Allow only columns 1 & 2
+                }
+            });
+
+            tableEditable = true;
+            JOptionPane.showMessageDialog(this, "The table is now editable.");
+        } else {
+            boolean hasChanges = false;
+            for (int row = 0; row < model.getRowCount(); row++) {
+                String newIn = model.getValueAt(row, 1).toString().trim();
+                String newOut = model.getValueAt(row, 2).toString().trim();
+                String[] original = originalTableData.get(row);
+
+                if (!newIn.equals(original[1]) || !newOut.equals(original[2])) {
+                    hasChanges = true;
+                    break;
+                }
+            }
+
+            if (!hasChanges) {
+                JOptionPane.showMessageDialog(this, "No changes were made.");
+                tableEditable = false;
+                return;
+            }
+
+            int confirm = JOptionPane.showConfirmDialog(this, "Are you sure you want to save your changes?",
+                    "Confirm Save", JOptionPane.YES_NO_OPTION);
+
+            if (confirm == JOptionPane.YES_OPTION) {
+                saveAttendanceChanges();
+                JOptionPane.showMessageDialog(this, "Changes saved successfully.");
+                checkAttendanceButton.doClick(); // Refresh display
+            }
+
+            tableEditable = false;
+        }
+    }//GEN-LAST:event_updateAttendanceButtonActionPerformed
+
     /**
      * @param args the command line arguments
      */
@@ -237,6 +310,69 @@ public class Attendance extends JFrame {
         });
     }
 
+    private void applyUpdateButtonRules() {
+        if (loggedInUser == null || empNo == null) {
+            updateAttendanceButton.setVisible(false);
+            return;
+        }
+
+        String role = loggedInUser.getAccess(); // IT, HR, Supervisor, Employee
+        String viewerEmpNo = loggedInUser.getEmployeeNumber(); // who is logged in
+        boolean isViewingOwn = viewerEmpNo.equals(empNo);
+
+        switch (role) {
+            case "IT":
+                updateAttendanceButton.setVisible(true);
+                break;
+            case "HR":
+            case "Employee":
+                updateAttendanceButton.setVisible(false);
+                break;
+            case "Supervisor":
+                if (!isViewingOwn && isSubordinate(viewerEmpNo, empNo)) {
+                    updateAttendanceButton.setVisible(true);
+                } else {
+                    updateAttendanceButton.setVisible(false);
+                }
+                break;
+            default:
+                updateAttendanceButton.setVisible(false);
+        }
+    }
+    
+    private boolean isSubordinate(String supervisorEmpNo, String targetEmpNo) {
+        List<Employee> allEmployees = EmployeeFileHandler.loadEmployees();
+        for (Employee emp : allEmployees) {
+            if (String.valueOf(emp.getEmployeeNumber()).equals(targetEmpNo)
+                && emp.getImmediateSupervisor().equalsIgnoreCase(supervisorEmpNo)) {
+                return true;
+            }
+        }
+        return false;
+    }
+    
+    private void saveAttendanceChanges() {
+        List<String[]> allRecords = AttendanceFileHandler.getRawCSV();
+        DefaultTableModel model = (DefaultTableModel) jTableAttendance.getModel();
+        java.time.format.DateTimeFormatter dateFmt = java.time.format.DateTimeFormatter.ofPattern("MM/dd/yyyy");
+
+        for (int row = 0; row < model.getRowCount(); row++) {
+            String date = model.getValueAt(row, 0).toString().trim();
+            String timeIn = model.getValueAt(row, 1).toString().trim();
+            String timeOut = model.getValueAt(row, 2).toString().trim();
+
+            for (String[] csvRow : allRecords) {
+                if (csvRow[0].equals(empNo) && csvRow[3].equals(date)) {
+                    csvRow[4] = timeIn;
+                    csvRow[5] = timeOut;
+                    break;
+                }
+            }
+        }
+
+        AttendanceFileHandler.overwriteCSV(allRecords);
+    }
+    
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.ButtonGroup buttonGroup1;
     private javax.swing.JButton checkAttendanceButton;
@@ -254,6 +390,7 @@ public class Attendance extends JFrame {
     private javax.swing.JScrollPane jScrollPane1;
     private javax.swing.JTable jTableAttendance;
     private com.toedter.calendar.JDateChooser startDateLabel;
+    private javax.swing.JButton updateAttendanceButton;
     // End of variables declaration//GEN-END:variables
 
 }

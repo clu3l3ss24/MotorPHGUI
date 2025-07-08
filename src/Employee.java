@@ -23,6 +23,7 @@ public class Employee {
     private double hourlyRate;
     private double withholdingTax;
     private String birthday;
+    private String immediateSupervisor;
 
     /**
      * Constructor initializes an Employee object with all attributes.
@@ -130,4 +131,8 @@ public class Employee {
                ", Total Allowances=" + getTotalAllowances() +
                "}";
     }
+    
+    public String getImmediateSupervisor() {
+        return immediateSupervisor;
+}
 }

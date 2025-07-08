@@ -22,6 +22,7 @@ public class LoginScreen1 extends javax.swing.JFrame {
 
     private Map<String, String> userCredentials = new HashMap<>();
     private Map<String, String> userFullNames = new HashMap<>();
+    private Map<String, User> userMap = new HashMap<>();
 
 
     public LoginScreen1() {
@@ -33,28 +34,36 @@ public class LoginScreen1 extends javax.swing.JFrame {
     }
 
     private void loadCredentialsFromCSV(String filename) {
-        try (CSVReader csvReader = new CSVReader(new FileReader(filename))) {
-            csvReader.readNext(); // Skip header row
+    try (CSVReader csvReader = new CSVReader(new FileReader(filename))) {
+        csvReader.readNext(); // Skip header row
 
-            String[] values;
-            while ((values = csvReader.readNext()) != null) {
-                // Ensure sufficient columns exist before accessing
-                if (values.length > 3) {
-                    String empNum = values[0].trim();
-                    String lastName = values[1].trim();
-                    String firstName = values[2].trim();
+        String[] values;
+        while ((values = csvReader.readNext()) != null) {
+            if (values.length >= 6) {
+                String empNum = values[0].trim();
+                String lastName = values[1].trim();
+                String firstName = values[2].trim();
+                String access = values[3].trim();
+                String position = values[4].trim();
 
-                    String username = empNum;
-                    String password = lastName.substring(0, 1).toUpperCase() + empNum;
-                    userCredentials.put(username, password);
-                    userFullNames.put(username, firstName + " " + lastName);
-                }
+                String username = empNum;
+                String password = lastName.substring(0, 1).toUpperCase() + empNum;
+                String fullName = firstName + " " + lastName;
+
+                // Store login and name
+                userCredentials.put(username, password);
+                userFullNames.put(username, fullName);
+
+                // Create and store User object
+                User user = new User(empNum, fullName, access, position);
+                userMap.put(username, user);
             }
-        } catch (IOException | CsvException e) { // Catch both IOException and CsvException
-            JOptionPane.showMessageDialog(this, "Error loading credentials: " + e.getMessage());
-            e.printStackTrace(); // Added for debugging
         }
+    } catch (IOException | CsvException e) {
+        JOptionPane.showMessageDialog(this, "Error loading credentials: " + e.getMessage());
+        e.printStackTrace();
     }
+}
 
 
     /**
@@ -141,10 +150,11 @@ public class LoginScreen1 extends javax.swing.JFrame {
             JOptionPane.showMessageDialog(this, "Login Successful!");
 
             // Open MainMenu screen
-            MainMenu main = new MainMenu(username, fullName, passwordInput);
+            User user = userMap.get(username);
+            MainMenu main = new MainMenu(user);
             main.setVisible(true);
             main.setLocationRelativeTo(null);
-            this.dispose(); // close login screen
+            this.dispose();
         } else {
             JOptionPane.showMessageDialog(this, "Invalid username or password.", "Login Failed", JOptionPane.ERROR_MESSAGE);
             jTextFieldUsername.setText("");
@@ -153,7 +163,7 @@ public class LoginScreen1 extends javax.swing.JFrame {
     }//GEN-LAST:event_jButtonLoginActionPerformed
 
     private void jPasswordFieldActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jPasswordFieldActionPerformed
-        //
+        jButtonLogin.doClick();  // Pressing Enter now works!
     }//GEN-LAST:event_jPasswordFieldActionPerformed
 
     private String getFullNameFromUsername(String username) {

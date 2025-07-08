@@ -15,7 +15,12 @@ public class ViewEmpInfo extends javax.swing.JFrame {
     public ViewEmpInfo() {
         initComponents();
     }
-
+    
+    public ViewEmpInfo(int empNum) {
+        initComponents();
+        loadEmployeeInfo(empNum);
+        this.setLocationRelativeTo(null); // Center the form
+    }
     /**
      * This method is called from within the constructor to initialize the form.
      * WARNING: Do NOT modify this code. The content of this method is always
@@ -391,6 +396,31 @@ public class ViewEmpInfo extends javax.swing.JFrame {
             }
         });
     }
+    
+    private void loadEmployeeInfo(int empNum) {
+    Employee emp = EmployeeFileHandler.getEmployeeByNumber(empNum);
+
+    if (emp != null) {
+        jLabel1.setText(emp.getLastName() + ", " + emp.getFirstName());
+        jLabel13.setText(emp.getPosition());
+        jLabel30.setText(emp.getStatus());
+        jLabel7.setText(emp.getSssNumber());
+        jLabel8.setText(emp.getPagIbigNumber());
+        jLabel9.setText(emp.getPhilHealthNumber());
+        jLabel10.setText(emp.getTinNumber());
+        jLabel12.setText(String.format("₱%,.2f", emp.getBasicSalary()));
+        jLabel22.setText(String.format("₱%,.2f", emp.getHourlyRate()));
+        jLabel23.setText(String.format("₱%,.2f", emp.getClothingAllowance()));
+        jLabel24.setText(String.format("₱%,.2f", emp.getPhoneAllowance()));
+        jLabel25.setText(String.format("₱%,.2f", emp.getRiceSubsidy()));
+        jLabel26.setText(emp.getSupervisor());
+        jLabel27.setText(emp.getPhoneNumber());
+        jLabel28.setText(emp.getBirthday());
+        jLabel29.setText(emp.getAddress());
+    } else {
+        System.err.println("Employee not found: " + empNum);
+    }
+}
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JButton jButton1;

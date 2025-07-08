@@ -104,17 +104,60 @@ public class EmployeeFileHandler {
         } catch (IOException e) {
             e.printStackTrace(); // Print error if writing fails.
         }
-    }
+        
+        // Also add employee to MotorPHlogin.csv for login use, avoiding duplicates
+        String loginFile = "src/data/MotorPHlogin.csv";
+        List<String[]> existingLogins = readRawCSV(loginFile);
+        boolean alreadyExists = existingLogins.stream()
+            .anyMatch(row -> row.length > 0 && row[0].trim().equals(String.valueOf(employee.getEmployeeNumber())));
 
+        if (!alreadyExists) {
+            try (CSVWriter loginWriter = new CSVWriter(new FileWriter(loginFile, true))) {
+                String[] loginRecord = {
+                    String.valueOf(employee.getEmployeeNumber()),
+                    employee.getLastName(),
+                    employee.getFirstName(),
+                    getAccessFromPosition(employee.getPosition()),
+                    employee.getPosition(),
+                    employee.getSupervisor()
+                };
+                loginWriter.writeNext(loginRecord);
+            } catch (IOException e) {
+                System.err.println("Failed to update MotorPHlogin.csv");
+                e.printStackTrace();
+            }
+        }
+    }
+    
     /**
      * Deletes an employee record from the CSV file based on their employee number.
      * It re-writes the entire file without the deleted employee.
      * @param empNum The employee number of the employee to delete.
      */
     public static void deleteEmployee(int empNum) {
+        // Step 1: Delete from employee_info.csv
         List<Employee> employees = loadEmployees(); // Load all employees.
-        employees.removeIf(emp -> emp.getEmployeeNumber() == empNum); // Remove the matching employee.
-        writeEmployeeListToFile(employees); // Write the modified list back to the file.
+        employees.removeIf(emp -> emp.getEmployeeNumber() == empNum); // Remove matching employee.
+        writeEmployeeListToFile(employees); // Save back to file.
+
+        // Step 2: Also delete from MotorPHlogin.csv
+        String loginFile = "src/data/MotorPHlogin.csv";
+        List<String[]> loginRecords = readRawCSV(loginFile);
+
+        // Keep only rows where employee number does not match
+        List<String[]> updatedLoginRecords = new ArrayList<>();
+        for (String[] row : loginRecords) {
+            if (row.length == 0 || row[0].equalsIgnoreCase("Employee Number")) {
+                updatedLoginRecords.add(row); // keep header
+                continue;
+            }
+
+            if (!row[0].trim().equals(String.valueOf(empNum))) {
+                updatedLoginRecords.add(row); // keep others
+            }
+        }
+
+        writeRawCSV(loginFile, updatedLoginRecords); // Save updated login records
     }
 
     /**
@@ -205,5 +248,78 @@ public class EmployeeFileHandler {
             System.err.println("ERROR: Invalid number format detected: " + value);
             return 0.0; // Return 0.0 on parsing error.
         }
+    }
+    
+    /**
+     * Returns the Employee object matching the given employee number.
+     * Returns null if not found.
+     */
+     public static Employee getEmployeeByNumber(int empNum) {
+         for (Employee emp : loadEmployees()) {
+             if (emp.getEmployeeNumber() == empNum) {
+                 return emp;
+             }
+         }
+         return null;
+     }
+    
+    public static List<String[]> readRawCSV(String filePath) {
+        List<String[]> data = new ArrayList<>();
+        try (CSVReader reader = new CSVReader(new FileReader(filePath))) {
+            data = reader.readAll();
+        } catch (IOException | com.opencsv.exceptions.CsvException e) {
+            System.err.println("Error reading: " + filePath);
+        }
+        return data;
+    }
+    
+    public static void writeRawCSV(String filePath, List<String[]> data) {
+        try (CSVWriter writer = new CSVWriter(new FileWriter(filePath))) {
+            writer.writeAll(data);
+        } catch (IOException e) {
+            System.err.println("Error writing: " + filePath);
+        }
+    }
+    
+    private static String getAccessFromPosition(String position) {
+        String lower = position.toLowerCase();
+        if (lower.contains("it")) return "IT";
+        if (lower.contains("hr")) return "HR";
+        if (lower.contains("supervisor") || lower.contains("chief")) return "Supervisor";
+        return "Employee";
+    }
+    
+    public static void appendToLoginCSV(int empNum, String lastName, String firstName, String access, String position, String supervisor) {
+    String loginFilePath = "src/data/MotorPHlogin.csv";
+
+    try (FileWriter fw = new FileWriter(loginFilePath, true);
+         BufferedWriter bw = new BufferedWriter(fw);
+         PrintWriter out = new PrintWriter(bw)) {
+
+        String line = empNum + "," + lastName + "," + firstName + "," + access + "," + position + "," + supervisor;
+        out.println(line);
+
+    } catch (IOException e) {
+        e.printStackTrace();
+    }
+}
+
+    public static List<String> getSupervisorFullNames() {
+        List<String> supervisors = new ArrayList<>();
+        try (CSVReader reader = new CSVReader(new FileReader("src/data/MotorPHlogin.csv"))) {
+            List<String[]> records = reader.readAll();
+            for (String[] row : records.subList(1, records.size())) { // Skip header
+                if (row.length >= 4) {
+                    String access = row[3].trim().toLowerCase();
+                    if (access.contains("supervisor")) {
+                        String fullName = row[1].trim() + ", " + row[2].trim(); // LastName, FirstName
+                        supervisors.add(fullName);
+                    }
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return supervisors;
     }
 }

@@ -7,6 +7,7 @@
  *
  * @author Singh, Jas, Ransel
  */
+
 import com.opencsv.CSVReader; // Added for OpenCSV functionality
 import com.opencsv.CSVWriter; // Added for OpenCSV functionality
 import com.opencsv.exceptions.CsvException; // Added for OpenCSV exceptions
@@ -32,27 +33,36 @@ import java.util.List; // sAdded for handling lists of lines
  * such as Employee Table, Payslip generation, and Attendance tracking.
  */
 public class MainMenu extends javax.swing.JFrame {
-      private String employeeId;
-      private String fullName;
-
+      private User user;
+      private User loggedInUser;
+      
      // Member variables to hold instances of other GUI forms.
-    // These forms are instantiated once and can be shown/hidden as needed.
-    // --- START NOTE: These are commented out as new instances are created in action listeners ---
-    // EmployeeTable femptable = new EmployeeTable();
-    // Payslip fpayslip = new Payslip();
-    // Attendance fattendance = new Attendance();
+    EmployeeTable femptable;
 
     /**
      * Constructor for `MainMenu`.
      * Initializes the visual components of the main menu window.
      */
-    public MainMenu(String employeeId, String fullName, String password) {
-        this.employeeId = employeeId;
-        this.fullName = fullName;
+    
+    
+    
+    public MainMenu(User user) {
+        this.user = user;
+        this.loggedInUser = user;
         initComponents();
-        jLabelTitle2.setText("Welcome, " + fullName);
-        // Center the frame on the screen
+        jLabelTitle2.setText("Welcome, " + user.getFullName());
         this.setLocationRelativeTo(null);
+
+        // Make ESC key trigger Sign Out
+        getRootPane().getInputMap(javax.swing.JComponent.WHEN_IN_FOCUSED_WINDOW)
+            .put(javax.swing.KeyStroke.getKeyStroke("ESCAPE"), "SIGN_OUT");
+
+        getRootPane().getActionMap().put("SIGN_OUT", new javax.swing.AbstractAction() {
+            @Override
+            public void actionPerformed(java.awt.event.ActionEvent e) {
+                jButtonExit2.doClick(); // Simulate Sign Out button click
+            }
+        });
     }
 
 
@@ -263,7 +273,7 @@ public class MainMenu extends javax.swing.JFrame {
 
             String[] values;
             while ((values = csvReader.readNext()) != null) {
-                if (values.length > 3 && values[0].trim().equals(this.employeeId) && values[3].trim().equals(todayStr)) {
+                if (values.length > 3 && values[0].trim().equals(user.getEmployeeNumber()) && values[3].trim().equals(todayStr)) {
                     JOptionPane.showMessageDialog(this, "You have already timed in today at " + values[4].trim(), "Action Denied", JOptionPane.WARNING_MESSAGE);
                     return; // Exit the method
                 }
@@ -280,26 +290,26 @@ public class MainMenu extends javax.swing.JFrame {
         String timeInStr = timeIn.format(timeFormatter);
 
         // Parse fullName to get First and Last Name for the CSV
-        String[] nameParts = this.fullName.split("\\s+");
+        String[] nameParts = user.getFullName().split("\\s+");
         String csvFirstName = "";
         String csvLastName = "";
         if (nameParts.length > 1) {
             csvLastName = nameParts[nameParts.length - 1];
             csvFirstName = String.join(" ", Arrays.copyOf(nameParts, nameParts.length - 1));
         } else {
-            csvFirstName = this.fullName; // Fallback for single names
+            csvFirstName = user.getFullName(); // Use full name from User object
         }
 
         try (CSVWriter csvWriter = new CSVWriter(new FileWriter(filePath, true))) { // true for append mode
 
             String[] newRecord = {
-                this.employeeId,
+                user.getEmployeeNumber(),
                 csvLastName,
                 csvFirstName,
                 todayStr,
                 timeInStr,
-                "00:00" // Placeholder for Time OUT
-            };
+                "00:00"
+        };
 
             csvWriter.writeNext(newRecord); // Write the array as a CSV row
 
@@ -343,7 +353,7 @@ public class MainMenu extends javax.swing.JFrame {
             String[] values;
             while ((values = csvReader.readNext()) != null) {
                 // Check if it's the correct employee, for today's date
-                if (values.length > 5 && values[0].trim().equals(this.employeeId) && values[3].trim().equals(todayStr)) {
+                if (values.length > 5 && values[0].trim().equals(user.getEmployeeNumber()) && values[3].trim().equals(todayStr)) {
                     recordFound = true;
                     // Check if they have not timed out yet
                     if (values[5].trim().equals("00:00")) {
@@ -404,29 +414,14 @@ public class MainMenu extends javax.swing.JFrame {
     }
 
     private void jButtonEmployeeActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButtonEmployeeActionPerformed
-        // TODO add your handling code here:
-        EmployeeTable femptable = new EmployeeTable(); // Create new instance here
+        EmployeeTable femptable = new EmployeeTable(user, false); // false = not payslip
         femptable.setVisible(true);
-
     }//GEN-LAST:event_jButtonEmployeeActionPerformed
 
     private void jButtonPayslipActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButtonPayslipActionPerformed
-    String input = JOptionPane.showInputDialog(
-        this,
-        "Enter Employee Number:",
-        "Generate Payslip",
-        JOptionPane.QUESTION_MESSAGE
-    );
-
-    if (input != null && !input.trim().isEmpty()) {
-
-
-        // 🔽 Directly pass the Employee ID to Payslip
-        new Payslip(input).setVisible(true);
-    } else {
-        JOptionPane.showMessageDialog(this, "Employee Number is required.", "Input Error", JOptionPane.WARNING_MESSAGE);
-    }
-
+    // Open the Employee Table in Payslip Mode
+    EmployeeTable payslipSelector = new EmployeeTable(loggedInUser, true);
+    payslipSelector.setVisible(true);
     }//GEN-LAST:event_jButtonPayslipActionPerformed
 
     private void jButtonExit2ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButtonExit2ActionPerformed
@@ -450,24 +445,9 @@ public class MainMenu extends javax.swing.JFrame {
     }//GEN-LAST:event_jButtonExit2ActionPerformed
 
     private void jButtonAttendanceActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButtonAttendanceActionPerformed
-        String input = JOptionPane.showInputDialog(
-        this,
-        "Enter Employee Number:",
-        "Show Attendance",
-        JOptionPane.QUESTION_MESSAGE
-    );
-
-    if (input != null && !input.trim().isEmpty()) {
-
-        // Launch Attendance window
-        Attendance attendanceWindow = new Attendance(input);  // Make sure Attendance has this constructor
-        attendanceWindow.setVisible(true);
-
-        // Optional: dispose current frame if needed
-        // this.dispose();
-    } else {
-        JOptionPane.showMessageDialog(this, "Employee Number is required.", "Input Error", JOptionPane.WARNING_MESSAGE);
-    }
+        EmployeeTable table = new EmployeeTable(user);
+        table.enableAttendanceMode();
+        table.setVisible(true);
     }//GEN-LAST:event_jButtonAttendanceActionPerformed
 
     /**
@@ -500,7 +480,8 @@ public class MainMenu extends javax.swing.JFrame {
         /* Create and display the form */
         java.awt.EventQueue.invokeLater(new Runnable() {
             public void run() {
-                new MainMenu("0000", "Default User", "DefaultPass").setVisible(true);
+                // You may call this in your LoginScreen1.java instead
+// new MainMenu(new User("10001", "Manuel Garcia III", "Supervisor", "CEO")).setVisible(true);
             }
         });
     }

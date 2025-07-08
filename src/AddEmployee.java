@@ -1,5 +1,9 @@
 import javax.swing.JOptionPane;
 import java.util.List;
+import com.opencsv.CSVReader;
+import java.io.FileReader;
+import java.io.IOException;
+import java.util.ArrayList;
 
 /**
  * `AddEmployee` class provides a GUI for adding new employee records.
@@ -7,18 +11,59 @@ import java.util.List;
  */
 public class AddEmployee extends javax.swing.JFrame {
 
+    private EmployeeTable parentTable;
+    
     /**
      * Constructor - Initializes the AddEmployee form.
      * Automatically generates the next Employee Number and disables manual editing.
      */
+    
+    public AddEmployee(EmployeeTable parentTable) {
+        this(); // Call the default constructor
+        this.parentTable = parentTable; // Remember the table that opened this form
+    }
+    
     public AddEmployee() {
         initComponents(); // Initialize UI components
         generateNextEmpNum(); // Auto-set Employee Number
+        populateAccessCombo();
+        populateSupervisorCombo();
 
         // Prevent manual entry in Employee Number field
         jTxtEmpNum.setEditable(false);
         jTxtEmpNum.setFocusable(false);
         jTxtEmpNum.setBackground(java.awt.Color.LIGHT_GRAY);
+    }
+    
+    private void populateAccessCombo() {
+        jComboAccess.removeAllItems();
+        jComboAccess.addItem("Employee");
+        jComboAccess.addItem("Supervisor");
+        jComboAccess.addItem("HR");
+        jComboAccess.addItem("IT");
+    }
+
+    private void populateSupervisorCombo() {
+        jComboSupervisor.removeAllItems();
+        jComboSupervisor.addItem("N/A"); // Default option
+
+        try (CSVReader reader = new CSVReader(new FileReader("src/data/MotorPHlogin.csv"))) {
+            List<String[]> records = reader.readAll();
+
+            for (int i = 1; i < records.size(); i++) { // Skip header
+                String[] row = records.get(i);
+                String access = row[3].trim(); // Access column (e.g., Supervisor)
+                String firstName = row[2].trim();
+                String lastName = row[1].trim();
+
+                if (access.equalsIgnoreCase("Supervisor")) {
+                    String fullName = firstName + " " + lastName;
+                    jComboSupervisor.addItem(fullName);
+                }
+            }
+        } catch (IOException | com.opencsv.exceptions.CsvException e) {
+            e.printStackTrace();
+        }
     }
 
     /**
@@ -59,7 +104,6 @@ public class AddEmployee extends javax.swing.JFrame {
         jLblPhoneNumber = new javax.swing.JLabel();
         jLblStatus = new javax.swing.JLabel();
         jLblPosition = new javax.swing.JLabel();
-        jTxtEmpNum = new javax.swing.JTextField();
         jTxtLastName = new javax.swing.JTextField();
         jTxtFirstName = new javax.swing.JTextField();
         jTxtPhoneNumber = new javax.swing.JTextField();
@@ -72,6 +116,15 @@ public class AddEmployee extends javax.swing.JFrame {
         jTextSSS = new javax.swing.JTextField();
         jLblPersonal = new javax.swing.JLabel();
         jButtonCancel = new javax.swing.JButton();
+        jComboSupervisor = new javax.swing.JComboBox<>();
+        jLabel1 = new javax.swing.JLabel();
+        jComboAccess = new javax.swing.JComboBox<>();
+        jLabel3 = new javax.swing.JLabel();
+        jLabel4 = new javax.swing.JLabel();
+        jTxtAddress = new javax.swing.JTextField();
+        jLabel5 = new javax.swing.JLabel();
+        jTxtEmpNum = new javax.swing.JTextField();
+        jTxtBirthday = new javax.swing.JTextField();
         jPanel2 = new javax.swing.JPanel();
         jPanel3 = new javax.swing.JPanel();
         jLabel2 = new javax.swing.JLabel();
@@ -80,19 +133,19 @@ public class AddEmployee extends javax.swing.JFrame {
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
 
         jPanel1.setLayout(new org.netbeans.lib.awtextra.AbsoluteLayout());
-        jPanel1.add(jTextPAGIBIG, new org.netbeans.lib.awtextra.AbsoluteConstraints(167, 323, 211, -1));
+        jPanel1.add(jTextPAGIBIG, new org.netbeans.lib.awtextra.AbsoluteConstraints(140, 400, 211, 20));
 
         jLabelAddEmp.setFont(new java.awt.Font("Segoe UI", 1, 18)); // NOI18N
         jLabelAddEmp.setText("Add New Employee");
-        jPanel1.add(jLabelAddEmp, new org.netbeans.lib.awtextra.AbsoluteConstraints(6, 22, 210, -1));
-        jPanel1.add(jTextPHILHEALTH, new org.netbeans.lib.awtextra.AbsoluteConstraints(167, 353, 211, -1));
+        jPanel1.add(jLabelAddEmp, new org.netbeans.lib.awtextra.AbsoluteConstraints(0, 0, 210, -1));
+        jPanel1.add(jTextPHILHEALTH, new org.netbeans.lib.awtextra.AbsoluteConstraints(140, 430, 211, 20));
 
         jLblEmpNum.setText("Employee Number:");
-        jPanel1.add(jLblEmpNum, new org.netbeans.lib.awtextra.AbsoluteConstraints(35, 107, 140, -1));
-        jPanel1.add(jTextTIN, new org.netbeans.lib.awtextra.AbsoluteConstraints(167, 383, 212, -1));
+        jPanel1.add(jLblEmpNum, new org.netbeans.lib.awtextra.AbsoluteConstraints(20, 70, 140, 20));
+        jPanel1.add(jTextTIN, new org.netbeans.lib.awtextra.AbsoluteConstraints(140, 460, 212, 20));
 
         jLblLastName.setText("Last Name:");
-        jPanel1.add(jLblLastName, new org.netbeans.lib.awtextra.AbsoluteConstraints(35, 137, 132, -1));
+        jPanel1.add(jLblLastName, new org.netbeans.lib.awtextra.AbsoluteConstraints(20, 100, 132, 20));
 
         jButtonSubmit.setBackground(new java.awt.Color(14, 49, 113));
         jButtonSubmit.setForeground(new java.awt.Color(255, 255, 255));
@@ -103,54 +156,47 @@ public class AddEmployee extends javax.swing.JFrame {
                 jButtonSubmitActionPerformed(evt);
             }
         });
-        jPanel1.add(jButtonSubmit, new org.netbeans.lib.awtextra.AbsoluteConstraints(180, 470, 90, -1));
+        jPanel1.add(jButtonSubmit, new org.netbeans.lib.awtextra.AbsoluteConstraints(140, 510, 90, -1));
 
         jLblFirstName.setText("First Name:");
-        jPanel1.add(jLblFirstName, new org.netbeans.lib.awtextra.AbsoluteConstraints(35, 164, 132, -1));
+        jPanel1.add(jLblFirstName, new org.netbeans.lib.awtextra.AbsoluteConstraints(20, 130, 132, 20));
 
         jLblPhoneNumber.setText("Phone Number:");
-        jPanel1.add(jLblPhoneNumber, new org.netbeans.lib.awtextra.AbsoluteConstraints(35, 194, 132, -1));
+        jPanel1.add(jLblPhoneNumber, new org.netbeans.lib.awtextra.AbsoluteConstraints(20, 190, 132, 20));
 
         jLblStatus.setText("Status:");
-        jPanel1.add(jLblStatus, new org.netbeans.lib.awtextra.AbsoluteConstraints(35, 230, 132, -1));
+        jPanel1.add(jLblStatus, new org.netbeans.lib.awtextra.AbsoluteConstraints(20, 250, 132, 20));
 
         jLblPosition.setText("Position:");
-        jPanel1.add(jLblPosition, new org.netbeans.lib.awtextra.AbsoluteConstraints(35, 260, 132, -1));
-
-        jTxtEmpNum.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                jTxtEmpNumActionPerformed(evt);
-            }
-        });
-        jPanel1.add(jTxtEmpNum, new org.netbeans.lib.awtextra.AbsoluteConstraints(167, 104, 211, -1));
-        jPanel1.add(jTxtLastName, new org.netbeans.lib.awtextra.AbsoluteConstraints(167, 134, 211, -1));
-        jPanel1.add(jTxtFirstName, new org.netbeans.lib.awtextra.AbsoluteConstraints(167, 164, 211, -1));
-        jPanel1.add(jTxtPhoneNumber, new org.netbeans.lib.awtextra.AbsoluteConstraints(167, 194, 211, -1));
-        jPanel1.add(jTxtStatus, new org.netbeans.lib.awtextra.AbsoluteConstraints(167, 227, 211, -1));
-        jPanel1.add(jTxtPosition, new org.netbeans.lib.awtextra.AbsoluteConstraints(167, 257, 211, -1));
+        jPanel1.add(jLblPosition, new org.netbeans.lib.awtextra.AbsoluteConstraints(20, 280, 132, 20));
+        jPanel1.add(jTxtLastName, new org.netbeans.lib.awtextra.AbsoluteConstraints(140, 100, 211, 20));
+        jPanel1.add(jTxtFirstName, new org.netbeans.lib.awtextra.AbsoluteConstraints(140, 130, 211, 20));
+        jPanel1.add(jTxtPhoneNumber, new org.netbeans.lib.awtextra.AbsoluteConstraints(140, 190, 211, 20));
+        jPanel1.add(jTxtStatus, new org.netbeans.lib.awtextra.AbsoluteConstraints(140, 250, 211, 20));
+        jPanel1.add(jTxtPosition, new org.netbeans.lib.awtextra.AbsoluteConstraints(140, 280, 211, 20));
 
         jLblSSS.setText("SSS");
-        jPanel1.add(jLblSSS, new org.netbeans.lib.awtextra.AbsoluteConstraints(35, 296, 132, -1));
+        jPanel1.add(jLblSSS, new org.netbeans.lib.awtextra.AbsoluteConstraints(20, 370, 132, 20));
 
         jLblPAGIBIG.setText("PAGIBIG");
-        jPanel1.add(jLblPAGIBIG, new org.netbeans.lib.awtextra.AbsoluteConstraints(35, 326, 132, -1));
+        jPanel1.add(jLblPAGIBIG, new org.netbeans.lib.awtextra.AbsoluteConstraints(20, 400, 132, 20));
 
         jLblPHILHEALTH.setText("PHILEALTH");
-        jPanel1.add(jLblPHILHEALTH, new org.netbeans.lib.awtextra.AbsoluteConstraints(35, 353, 132, -1));
+        jPanel1.add(jLblPHILHEALTH, new org.netbeans.lib.awtextra.AbsoluteConstraints(20, 430, 132, 20));
 
         jLblTIN.setText("TIN");
-        jPanel1.add(jLblTIN, new org.netbeans.lib.awtextra.AbsoluteConstraints(35, 386, 132, -1));
+        jPanel1.add(jLblTIN, new org.netbeans.lib.awtextra.AbsoluteConstraints(20, 460, 132, 20));
 
         jTextSSS.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 jTextSSSActionPerformed(evt);
             }
         });
-        jPanel1.add(jTextSSS, new org.netbeans.lib.awtextra.AbsoluteConstraints(167, 293, 211, -1));
+        jPanel1.add(jTextSSS, new org.netbeans.lib.awtextra.AbsoluteConstraints(140, 370, 211, 20));
 
         jLblPersonal.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
         jLblPersonal.setText("Personal Information");
-        jPanel1.add(jLblPersonal, new org.netbeans.lib.awtextra.AbsoluteConstraints(35, 71, 170, -1));
+        jPanel1.add(jLblPersonal, new org.netbeans.lib.awtextra.AbsoluteConstraints(130, 50, 140, -1));
 
         jButtonCancel.setBackground(new java.awt.Color(153, 0, 0));
         jButtonCancel.setForeground(new java.awt.Color(255, 255, 255));
@@ -161,7 +207,46 @@ public class AddEmployee extends javax.swing.JFrame {
                 jButtonCancelActionPerformed(evt);
             }
         });
-        jPanel1.add(jButtonCancel, new org.netbeans.lib.awtextra.AbsoluteConstraints(290, 470, 90, -1));
+        jPanel1.add(jButtonCancel, new org.netbeans.lib.awtextra.AbsoluteConstraints(260, 510, 90, -1));
+
+        jComboSupervisor.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "Item 1", "Item 2", "Item 3", "Item 4" }));
+        jPanel1.add(jComboSupervisor, new org.netbeans.lib.awtextra.AbsoluteConstraints(140, 340, 210, 20));
+
+        jLabel1.setText("Birthday:");
+        jPanel1.add(jLabel1, new org.netbeans.lib.awtextra.AbsoluteConstraints(20, 160, 160, 20));
+
+        jComboAccess.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "Item 1", "Item 2", "Item 3", "Item 4" }));
+        jPanel1.add(jComboAccess, new org.netbeans.lib.awtextra.AbsoluteConstraints(140, 310, 210, 20));
+
+        jLabel3.setText("Access:");
+        jPanel1.add(jLabel3, new org.netbeans.lib.awtextra.AbsoluteConstraints(20, 310, 130, 20));
+
+        jLabel4.setText("Supervisor:");
+        jPanel1.add(jLabel4, new org.netbeans.lib.awtextra.AbsoluteConstraints(20, 340, 130, 20));
+
+        jTxtAddress.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                jTxtAddressActionPerformed(evt);
+            }
+        });
+        jPanel1.add(jTxtAddress, new org.netbeans.lib.awtextra.AbsoluteConstraints(140, 220, 211, 20));
+
+        jLabel5.setText("Address:");
+        jPanel1.add(jLabel5, new org.netbeans.lib.awtextra.AbsoluteConstraints(20, 220, 140, 20));
+
+        jTxtEmpNum.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                jTxtEmpNumActionPerformed(evt);
+            }
+        });
+        jPanel1.add(jTxtEmpNum, new org.netbeans.lib.awtextra.AbsoluteConstraints(140, 70, 211, 20));
+
+        jTxtBirthday.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                jTxtBirthdayActionPerformed(evt);
+            }
+        });
+        jPanel1.add(jTxtBirthday, new org.netbeans.lib.awtextra.AbsoluteConstraints(140, 160, 211, 20));
 
         jPanel2.setBackground(new java.awt.Color(14, 49, 113));
         jPanel2.setAutoscrolls(true);
@@ -198,14 +283,13 @@ public class AddEmployee extends javax.swing.JFrame {
         jPanel2Layout.setHorizontalGroup(
             jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(jPanel2Layout.createSequentialGroup()
-                .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addGroup(jPanel2Layout.createSequentialGroup()
-                        .addGap(33, 33, 33)
-                        .addComponent(textLogo))
-                    .addGroup(jPanel2Layout.createSequentialGroup()
-                        .addGap(77, 77, 77)
-                        .addComponent(jPanel3, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)))
-                .addContainerGap(54, Short.MAX_VALUE))
+                .addGap(33, 33, 33)
+                .addComponent(textLogo)
+                .addContainerGap(348, Short.MAX_VALUE))
+            .addGroup(jPanel2Layout.createSequentialGroup()
+                .addGap(77, 77, 77)
+                .addComponent(jPanel3, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
         );
         jPanel2Layout.setVerticalGroup(
             jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -223,16 +307,19 @@ public class AddEmployee extends javax.swing.JFrame {
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(layout.createSequentialGroup()
                 .addComponent(jPanel2, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addGap(18, 18, 18)
-                .addComponent(jPanel1, javax.swing.GroupLayout.PREFERRED_SIZE, 400, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addContainerGap())
+                .addGap(20, 20, 20)
+                .addComponent(jPanel1, javax.swing.GroupLayout.PREFERRED_SIZE, 380, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addContainerGap(12, Short.MAX_VALUE))
         );
         layout.setVerticalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addComponent(jPanel2, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
             .addGroup(layout.createSequentialGroup()
-                .addGap(30, 30, 30)
-                .addComponent(jPanel1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                .addComponent(jPanel2, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addGap(0, 0, Short.MAX_VALUE))
+            .addGroup(layout.createSequentialGroup()
+                .addGap(14, 14, 14)
+                .addComponent(jPanel1, javax.swing.GroupLayout.PREFERRED_SIZE, 535, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addContainerGap(20, Short.MAX_VALUE))
         );
 
         pack();
@@ -255,9 +342,10 @@ public class AddEmployee extends javax.swing.JFrame {
         String phoneNumber = jTxtPhoneNumber.getText().trim();
         String status = jTxtStatus.getText().trim().isEmpty() ? "NA" : jTxtStatus.getText().trim();
         String position = jTxtPosition.getText().trim().isEmpty() ? "NA" : jTxtPosition.getText().trim();
-        String supervisor = "NA"; // No supervisor input field, defaulting to "NA"
-        String address = "NA"; // Default placeholder for missing address
-        String birthday = "NA";
+        String supervisor = jComboSupervisor.getSelectedItem().toString().trim();
+        String access = jComboAccess.getSelectedItem().toString().trim();
+        String address = jTxtAddress.getText().trim().isEmpty() ? "NA" : jTxtAddress.getText().trim();
+        String birthday = jTxtBirthday.getText().trim().isEmpty() ? "NA" : jTxtBirthday.getText().trim();
 
         // Convert SSS, PAGIBIG, PHILHEALTH, TIN to integers, handling empty fields
         int sssNumber = jTextSSS.getText().trim().isEmpty() ? 0 : Integer.parseInt(jTextSSS.getText().trim());
@@ -293,6 +381,7 @@ public class AddEmployee extends javax.swing.JFrame {
 
         // Save employee record via EmployeeFileHandler
         EmployeeFileHandler.saveEmployee(newEmployee);
+        EmployeeFileHandler.appendToLoginCSV(empNum, lastName, firstName, access, position, supervisor);
 
         JOptionPane.showMessageDialog(this, "Employee added successfully!", "Success", JOptionPane.INFORMATION_MESSAGE);
 
@@ -300,10 +389,10 @@ public class AddEmployee extends javax.swing.JFrame {
         generateNextEmpNum();
 
         // Refresh the table view to reflect new entries
-        if (EmployeeTable.getInstance() != null) {
-            EmployeeTable.getInstance().refreshEmployeeTable(); 
+        if (parentTable != null) {
+            parentTable.refreshEmployeeTable();
         }
-
+        
         // Close the form after successful submission
         dispose();
 
@@ -317,6 +406,14 @@ public class AddEmployee extends javax.swing.JFrame {
         // TODO add your handling code here:
     dispose(); 
     }//GEN-LAST:event_jButtonCancelActionPerformed
+
+    private void jTxtBirthdayActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jTxtBirthdayActionPerformed
+        // TODO add your handling code here:
+    }//GEN-LAST:event_jTxtBirthdayActionPerformed
+
+    private void jTxtAddressActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jTxtAddressActionPerformed
+        // TODO add your handling code here:
+    }//GEN-LAST:event_jTxtAddressActionPerformed
 
     /**
      * @param args the command line arguments
@@ -356,7 +453,13 @@ public class AddEmployee extends javax.swing.JFrame {
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JButton jButtonCancel;
     private javax.swing.JButton jButtonSubmit;
+    private javax.swing.JComboBox<String> jComboAccess;
+    private javax.swing.JComboBox<String> jComboSupervisor;
+    private javax.swing.JLabel jLabel1;
     private javax.swing.JLabel jLabel2;
+    private javax.swing.JLabel jLabel3;
+    private javax.swing.JLabel jLabel4;
+    private javax.swing.JLabel jLabel5;
     private javax.swing.JLabel jLabelAddEmp;
     private javax.swing.JLabel jLblEmpNum;
     private javax.swing.JLabel jLblFirstName;
@@ -376,6 +479,8 @@ public class AddEmployee extends javax.swing.JFrame {
     private javax.swing.JTextField jTextPHILHEALTH;
     private javax.swing.JTextField jTextSSS;
     private javax.swing.JTextField jTextTIN;
+    private javax.swing.JTextField jTxtAddress;
+    private javax.swing.JTextField jTxtBirthday;
     private javax.swing.JTextField jTxtEmpNum;
     private javax.swing.JTextField jTxtFirstName;
     private javax.swing.JTextField jTxtLastName;

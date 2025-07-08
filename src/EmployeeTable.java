@@ -13,6 +13,9 @@ import java.util.Arrays;  // Provides array-based utilities.
  * Supports real-time updates and structured data retrieval from a CSV file.
  */
 public class EmployeeTable extends javax.swing.JFrame {
+    private User loggedInUser;
+    private boolean payslipMode = false;
+    private boolean attendanceMode = false;
     private String selectedEmpNum;  // Stores the Employee Number selected in the table.
 
     // Instances for handling employee-related actions.
@@ -21,29 +24,104 @@ public class EmployeeTable extends javax.swing.JFrame {
 
     // Tracks the active instance of the Employee Table for easy access.
     public static EmployeeTable instance;
-
+    
     /**
      * Constructor - Creates and initializes the EmployeeTable UI.
      * Configures table settings and loads employee records.
      */
     public EmployeeTable() {
-        instance = this;  // Stores the active instance of EmployeeTable.
-        initComponents();  // Initializes UI components.
+    instance = this;
+    initComponents();
+    setDefaultCloseOperation(javax.swing.WindowConstants.DISPOSE_ON_CLOSE);
+    addWindowListener(new java.awt.event.WindowAdapter() {
+        @Override
+        public void windowClosing(java.awt.event.WindowEvent e) {
+            instance = null;
+        }
+    });
+    
+}
 
-        setDefaultCloseOperation(javax.swing.WindowConstants.DISPOSE_ON_CLOSE);  // Allows proper window closure.
+public EmployeeTable(User user) {
+    this.loggedInUser = user;
+    initComponents();
+    loadFilteredEmployees();
+    this.setLocationRelativeTo(null);
+}
 
-        // Reset instance when window is closed
-        addWindowListener(new java.awt.event.WindowAdapter() {
-            @Override
-            public void windowClosing(java.awt.event.WindowEvent e) {
-                instance = null;
+public EmployeeTable(User user, boolean payslipMode) {
+    this.loggedInUser = user;
+    this.payslipMode = payslipMode;
+    instance = this;
+    initComponents();
+
+    if (payslipMode) {
+        setTitle("Employee Payslip");
+        jLabelEmpInfo.setText("Employee Payslip");
+        jButtonAdd.setVisible(false);
+        jButtonUpdate.setVisible(false);
+        jButtonDelete.setVisible(false);
+    } else {
+        setTitle("Employee Information");
+
+        if (loggedInUser != null) {
+            String access = loggedInUser.getAccess().toLowerCase();
+
+            // Hide all action buttons if NOT HR or IT
+            if (!access.contains("hr") && !access.contains("it")) {
+                jButtonAdd.setVisible(false);
+                jButtonUpdate.setVisible(false);
+                jButtonDelete.setVisible(false);
+            }
+        }
+    }
+
+    configureTableModel();
+    loadFilteredEmployees();
+    adjustTableSettings();
+    this.setLocationRelativeTo(null);
+    System.out.println("Logged in as: " + loggedInUser.getAccess() + " (" + loggedInUser.getFullName() + ")");
+}
+
+public void enableAttendanceMode() {
+    attendanceMode = true;
+
+    setTitle("Employee Attendance");
+    jLabelEmpInfo.setText("Employee Attendance");
+    jButtonView.setText("View Attendance");
+
+    // Hide buttons by default
+    jButtonAdd.setVisible(false);
+    jButtonUpdate.setVisible(false);
+    jButtonDelete.setVisible(false);
+
+    if (loggedInUser.isIT()) {
+        jButtonUpdate.setVisible(true);
+        jButtonDelete.setVisible(true);
+    } else if (loggedInUser.isSupervisor()) {
+        // Only show Update button when supervisor selects a subordinate (see listener below)
+        jTableEmpTable.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseClicked(java.awt.event.MouseEvent evt) {
+                int row = jTableEmpTable.getSelectedRow();
+                if (row == -1) return;
+
+                String empNum = jTableEmpTable.getValueAt(row, 0).toString().trim();
+                String supervisor = jTableEmpTable.getValueAt(row, 6).toString().trim();
+
+                boolean isSelf = empNum.equals(loggedInUser.getEmpNum());
+                boolean isSubordinate = supervisor.equalsIgnoreCase(loggedInUser.getFullName());
+
+                if (!isSelf && isSubordinate) {
+                    jButtonUpdate.setVisible(true);
+                } else {
+                    jButtonUpdate.setVisible(false);
+                }
             }
         });
-
-        configureTableModel();  // Sets up table columns.
-        loadEmployeeData();  // Loads employee records from CSV.
-        adjustTableSettings();  // Enhances table formatting for readability.
     }
+
+    loadFilteredEmployees(); // Show correct data
+}
 
     /**
      * Provides access to the active instance of EmployeeTable.
@@ -78,6 +156,57 @@ public class EmployeeTable extends javax.swing.JFrame {
     /**
      * Loads employee data from the CSV file and populates the table dynamically.
      */
+    
+    private void loadFilteredEmployees() {
+        DefaultTableModel model = (DefaultTableModel) jTableEmpTable.getModel();
+        model.setRowCount(0);  // Clear table
+
+        List<Employee> employees = EmployeeFileHandler.loadEmployees();
+
+        if (loggedInUser == null) return;
+
+        for (Employee emp : employees) {
+            boolean shouldShow = false;
+
+            if (payslipMode) {
+                if (loggedInUser.isIT()) {
+                    shouldShow = true;
+                } else {
+                    shouldShow = String.valueOf(emp.getEmployeeNumber()).equals(loggedInUser.getEmpNum());
+                }
+            } else if (attendanceMode) {
+                if (loggedInUser.isIT()) {
+                    shouldShow = true;
+                } else if (loggedInUser.isHR() || loggedInUser.isEmployee()) {
+                    shouldShow = String.valueOf(emp.getEmployeeNumber()).equals(loggedInUser.getEmpNum());
+                } else if (loggedInUser.isSupervisor()) {
+                    boolean isSelf = String.valueOf(emp.getEmployeeNumber()).equals(loggedInUser.getEmpNum());
+                    boolean isSubordinate = emp.getSupervisor() != null && emp.getSupervisor().equalsIgnoreCase(loggedInUser.getFullName());
+                    shouldShow = isSelf || isSubordinate;
+                }
+            } else {
+                // Existing logic for regular view
+                if (loggedInUser.isHR() || loggedInUser.isIT()) {
+                    shouldShow = true;
+                } else if (loggedInUser.isSupervisor()) {
+                    boolean isSelf = String.valueOf(emp.getEmployeeNumber()).equals(loggedInUser.getEmpNum());
+                    boolean isSubordinate = emp.getSupervisor() != null && emp.getSupervisor().equalsIgnoreCase(loggedInUser.getFullName());
+                    shouldShow = isSelf || isSubordinate;
+                } else if (loggedInUser.isEmployee()) {
+                    shouldShow = String.valueOf(emp.getEmployeeNumber()).equals(loggedInUser.getEmpNum());
+                }
+            }
+            
+            if (shouldShow) {
+                model.addRow(new Object[]{
+                    emp.getEmployeeNumber(), emp.getLastName(), emp.getFirstName(),
+                    emp.getPhoneNumber(), emp.getStatus(), emp.getPosition(), emp.getSupervisor()
+                });
+            }
+            
+        }
+    }
+            
     private void loadEmployeeData() {
     DefaultTableModel model = (DefaultTableModel) jTableEmpTable.getModel();
     model.setRowCount(0);  // ✅ Clears old table data before reloading
@@ -309,17 +438,26 @@ public class EmployeeTable extends javax.swing.JFrame {
 
     private void jButtonAddActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButtonAddActionPerformed
         // TODO add your handling code here:
-        addemp.show();
+        AddEmployee addForm = new AddEmployee(this);
+        addForm.setVisible(true);
     }//GEN-LAST:event_jButtonAddActionPerformed
 
     private void jButtonViewActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButtonViewActionPerformed
-    int selectedRow = jTableEmpTable.getSelectedRow(); // Get selected row index
+    int selectedRow = jTableEmpTable.getSelectedRow();
 
-    if (selectedRow != -1) { // Ensure a row is selected before proceeding
+    if (selectedRow != -1) {
         try {
-            int empNum = Integer.parseInt(jTableEmpTable.getValueAt(selectedRow, 0).toString().trim()); // Retrieve Employee Number
-            EditEmpInfo editEmpInfoWindow = new EditEmpInfo(empNum, true); // Open EditEmpInfo in read-only mode
-            editEmpInfoWindow.setVisible(true);
+            int empNum = Integer.parseInt(jTableEmpTable.getValueAt(selectedRow, 0).toString().trim());
+
+            if (payslipMode) {
+                new Payslip(String.valueOf(empNum)).setVisible(true);
+}           else if (attendanceMode) {
+                new Attendance(empNum, loggedInUser).setVisible(true);
+}           else {
+                ViewEmpInfo viewEmpInfoWindow = new ViewEmpInfo(empNum);
+                viewEmpInfoWindow.setVisible(true);
+            }      
+            
         } catch (NumberFormatException e) {
             JOptionPane.showMessageDialog(this, "Error: Invalid Employee Number format!", "Data Error", JOptionPane.ERROR_MESSAGE);
             System.err.println("ERROR: Failed to parse Employee Number - " + e.getMessage());
@@ -341,12 +479,38 @@ public class EmployeeTable extends javax.swing.JFrame {
     String empNumStr = jTableEmpTable.getValueAt(selectedRow, 0).toString().trim();
     try {
         int empNum = Integer.parseInt(empNumStr);
+        
+        if (attendanceMode && !loggedInUser.isIT()) {
+            Employee emp = EmployeeFileHandler.getEmployeeByNumber(empNum);
+            boolean isSelf = emp.getEmployeeNumber() == Integer.parseInt(loggedInUser.getEmpNum());
+            boolean isSubordinate = emp.getSupervisor() != null && emp.getSupervisor().equalsIgnoreCase(loggedInUser.getFullName());
 
-        // Open the Edit Employee window in Editable Mode
-        SwingUtilities.invokeLater(() -> {
-            EditEmpInfo editWindow = new EditEmpInfo(empNum, false);  
-            editWindow.setVisible(true);
-        });
+            if (loggedInUser.isHR() || loggedInUser.isEmployee()) {
+                JOptionPane.showMessageDialog(this, "You do not have permission to edit attendance.");
+                return;
+            } else if (loggedInUser.isSupervisor()) {
+                if (isSelf) {
+                    JOptionPane.showMessageDialog(this, "Supervisors cannot edit their own attendance.");
+                    return;
+                } else if (!isSubordinate) {
+                    JOptionPane.showMessageDialog(this, "You can only edit attendance of your subordinates.");
+                    return;
+                }
+            }
+        }
+        
+        if (attendanceMode) {
+            // Open UpdateAttendance instead of EditEmpInfo
+            SwingUtilities.invokeLater(() -> {
+                new UpdateAttendance(String.valueOf(empNum), loggedInUser).setVisible(true);
+            });
+        } else {
+            // Open regular Edit Employee window
+            SwingUtilities.invokeLater(() -> {
+                EditEmpInfo editWindow = new EditEmpInfo(empNum, false, loggedInUser);
+                editWindow.setVisible(true);
+            });
+        }
 
     } catch (NumberFormatException e) {
         JOptionPane.showMessageDialog(this, "Error: Invalid Employee Number format!", "Data Error", JOptionPane.ERROR_MESSAGE);
@@ -385,6 +549,23 @@ public class EmployeeTable extends javax.swing.JFrame {
     }//GEN-LAST:event_jButtonDeleteActionPerformed
 
     /**
+    * Hides and adjusts buttons if in payslip mode.
+    * Used by the constructor to apply limited view settings.
+    */
+    private void applyPayslipMode() {
+        if (payslipMode) {
+            jButtonAdd.setVisible(false);
+            jButtonUpdate.setVisible(false);
+            jButtonDelete.setVisible(false);
+            jButtonExit.setVisible(false);
+            jButtonView.setText("View Payslip");
+            jLabelEmpInfo.setText("Employee Payslip");
+            setTitle("Employee Payslip");
+        }
+    }
+    
+    
+    /**
      * @param args the command line arguments
      */
     public static void main(String args[]) {
@@ -414,7 +595,6 @@ public class EmployeeTable extends javax.swing.JFrame {
         /* Create and display the form */
         java.awt.EventQueue.invokeLater(new Runnable() {
             public void run() {
-                new EmployeeTable().setVisible(true);
             }
         });
     }

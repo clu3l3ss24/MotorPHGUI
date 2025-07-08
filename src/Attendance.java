@@ -21,6 +21,11 @@ public class Attendance extends JFrame {
     public Attendance() {
         initComponents();
     }
+    
+    public Attendance(int empNum, User user) {
+        this(String.valueOf(empNum)); // reuse the existing constructor
+        // You can also store the User if you want to restrict roles later
+    }
 
     // ✅ Fetch and Display Employee Name in jLabel3
     private void loadEmployeeName() {
@@ -155,11 +160,11 @@ public class Attendance extends JFrame {
         getContentPane().setLayout(layout);
         layout.setHorizontalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addComponent(jPanel1, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+            .addComponent(jPanel1, javax.swing.GroupLayout.DEFAULT_SIZE, 805, Short.MAX_VALUE)
         );
         layout.setVerticalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addComponent(jPanel1, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+            .addComponent(jPanel1, javax.swing.GroupLayout.DEFAULT_SIZE, 644, Short.MAX_VALUE)
         );
 
         pack();

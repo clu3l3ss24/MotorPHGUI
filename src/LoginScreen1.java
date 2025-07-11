@@ -4,9 +4,7 @@
  */
 
 /**
- *login page user name is the employee number with a default password ( First initial for the last name Uppercase + employee number)
- *
- * @author Jas, Ransel
+ *login page user name and password
  */
 
 import com.opencsv.CSVReader;         // Added for OpenCSV functionality
@@ -19,10 +17,16 @@ import java.util.Map;
 import javax.swing.JOptionPane;
 
 public class LoginScreen1 extends javax.swing.JFrame {
+    
+    // login / profile lookup maps
+private Map<String, String> userCredentials   = new HashMap<>();
+private Map<String, String> userFullNames     = new HashMap<>();
+private Map<String, User>   userMap           = new HashMap<>();
 
-    private Map<String, String> userCredentials = new HashMap<>();
-    private Map<String, String> userFullNames = new HashMap<>();
-    private Map<String, User> userMap = new HashMap<>();
+// reset‐password maps (you already have these)
+private Map<String, String> securityAnswers = new HashMap<>();
+private Map<String, String> userPasswordByEmpNum = new HashMap<>();
+private Map<String, String> usernameByEmpNum = new HashMap<>();
 
 
     public LoginScreen1() {
@@ -39,24 +43,28 @@ public class LoginScreen1 extends javax.swing.JFrame {
 
         String[] values;
         while ((values = csvReader.readNext()) != null) {
-            if (values.length >= 6) {
+            if (values.length >= 9) {
                 String empNum = values[0].trim();
                 String lastName = values[1].trim();
                 String firstName = values[2].trim();
                 String access = values[3].trim();
                 String position = values[4].trim();
+                String username = values[6].trim();  // From CSV
+                String password = values[7].trim();  // From CSV
+                String securityAnswer = values[8].trim().toLowerCase(); // For reset password
 
-                String username = empNum;
-                String password = lastName.substring(0, 1).toUpperCase() + empNum;
                 String fullName = firstName + " " + lastName;
 
-                // Store login and name
                 userCredentials.put(username, password);
                 userFullNames.put(username, fullName);
 
-                // Create and store User object
                 User user = new User(empNum, fullName, access, position);
-                userMap.put(username, user);
+                userMap.put(empNum, user); // Map by employee number
+
+                // Store security answer with EmpNum as key
+                securityAnswers.put(empNum, securityAnswer);
+                userPasswordByEmpNum.put(empNum, password);
+                usernameByEmpNum.put(empNum, username);
             }
         }
     } catch (IOException | CsvException e) {
@@ -85,6 +93,7 @@ public class LoginScreen1 extends javax.swing.JFrame {
         jButtonLogin = new javax.swing.JButton();
         jPasswordField = new javax.swing.JPasswordField();
         jLabelLogin2 = new javax.swing.JLabel();
+        jButton1 = new javax.swing.JButton();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
         getContentPane().setLayout(new org.netbeans.lib.awtextra.AbsoluteLayout());
@@ -121,7 +130,7 @@ public class LoginScreen1 extends javax.swing.JFrame {
                 jButtonLoginActionPerformed(evt);
             }
         });
-        jPanel2.add(jButtonLogin, new org.netbeans.lib.awtextra.AbsoluteConstraints(256, 396, 120, 32));
+        jPanel2.add(jButtonLogin, new org.netbeans.lib.awtextra.AbsoluteConstraints(260, 420, 120, 32));
 
         jPasswordField.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
@@ -135,11 +144,22 @@ public class LoginScreen1 extends javax.swing.JFrame {
         jLabelLogin2.setText("Employee Login");
         jPanel2.add(jLabelLogin2, new org.netbeans.lib.awtextra.AbsoluteConstraints(168, 148, -1, -1));
 
+        jButton1.setBackground(new java.awt.Color(14, 49, 113));
+        jButton1.setForeground(new java.awt.Color(255, 255, 255));
+        jButton1.setText("Reset Password ");
+        jButton1.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                jButton1ActionPerformed(evt);
+            }
+        });
+        jPanel2.add(jButton1, new org.netbeans.lib.awtextra.AbsoluteConstraints(260, 390, 120, -1));
+
         getContentPane().add(jPanel2, new org.netbeans.lib.awtextra.AbsoluteConstraints(413, 0, 590, 600));
 
         pack();
     }// </editor-fold>//GEN-END:initComponents
 
+    
     private void jButtonLoginActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButtonLoginActionPerformed
         String username = jTextFieldUsername.getText().trim();
         String passwordInput = new String(jPasswordField.getPassword()).trim();
@@ -150,7 +170,14 @@ public class LoginScreen1 extends javax.swing.JFrame {
             JOptionPane.showMessageDialog(this, "Login Successful!");
 
             // Open MainMenu screen
-            User user = userMap.get(username);
+            String empNum = null;
+for (Map.Entry<String, String> entry : usernameByEmpNum.entrySet()) {
+    if (entry.getValue().equals(username)) {
+        empNum = entry.getKey();
+        break;
+    }
+}
+User user = userMap.get(empNum);
             MainMenu main = new MainMenu(user);
             main.setVisible(true);
             main.setLocationRelativeTo(null);
@@ -166,10 +193,60 @@ public class LoginScreen1 extends javax.swing.JFrame {
         jButtonLogin.doClick();  // Pressing Enter now works!
     }//GEN-LAST:event_jPasswordFieldActionPerformed
 
-    private String getFullNameFromUsername(String username) {
-        return userFullNames.getOrDefault(username, "Unknown User");
+    private void jButton1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton1ActionPerformed
+   
+    // Step 1: Ask for employee number
+    String empNum = JOptionPane.showInputDialog(this, "Enter your employee number:");
+
+    if (empNum == null || empNum.trim().isEmpty()) {
+        return; // Cancelled or empty
     }
 
+    empNum = empNum.trim();
+
+    // Step 2: Check if employee exists in the system
+    if (!securityAnswers.containsKey(empNum)) {
+        JOptionPane.showMessageDialog(this, "Employee number not found.");
+        return;
+    }
+
+    // Step 3: Ask for security question answer
+    String answer = JOptionPane.showInputDialog(this, "What is your favorite animal?");
+    if (answer == null || answer.trim().isEmpty()) {
+        return; // Cancelled or empty
+    }
+
+    String storedAnswer = securityAnswers.get(empNum);
+
+    if (!storedAnswer.equalsIgnoreCase(answer.trim())) {
+        JOptionPane.showMessageDialog(this, "Incorrect answer to the security question.");
+        return;
+    }
+
+    // Step 4: Let user enter new password
+    String newPassword = JOptionPane.showInputDialog(this, "Enter your new password:");
+    if (newPassword == null || newPassword.trim().isEmpty()) {
+        return;
+    }
+
+    // Step 5: Update password in memory
+    String username = usernameByEmpNum.get(empNum);
+    userCredentials.put(username, newPassword);
+    userPasswordByEmpNum.put(empNum, newPassword);
+
+    // (Optional) Save new password to CSV here, if needed
+
+    JOptionPane.showMessageDialog(this, "Password successfully reset. You may now log in.");
+}
+    }//GEN-LAST:event_jButton1ActionPerformed
+
+    private String getFullNameFromUsername(String username) {
+        return userFullNames.getOrDefault(username, "Unknown User");
+   
+}
+
+   
+    
     /**
      * @param args the command line arguments
      */
@@ -198,14 +275,18 @@ public class LoginScreen1 extends javax.swing.JFrame {
         //</editor-fold>
 
         /* Create and display the form */
-        java.awt.EventQueue.invokeLater(() -> {
-            new LoginScreen1().setVisible(true);
-            // Highlight 2: Removed duplicate setLocationRelativeTo(null) as it's now in the constructor.
-            // login.setLocationRelativeTo(null); // This line was a duplicate and is now handled in the constructor.
+        java.awt.EventQueue.invokeLater(new Runnable() {
+            @Override
+            public void run() {
+new LoginScreen1().setVisible(true);
+// Highlight 2: Removed duplicate setLocationRelativeTo(null) as it's now in the constructor.
+// login.setLocationRelativeTo(null); // This line was a duplicate and is now handled in the constructor.
+            }
         });
     }
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
+    private javax.swing.JButton jButton1;
     private javax.swing.JButton jButtonLogin;
     private javax.swing.JLabel jLabelLogin2;
     private javax.swing.JLabel jLabelPassword;
@@ -219,4 +300,3 @@ public class LoginScreen1 extends javax.swing.JFrame {
     // End of variables declaration//GEN-END:variables
 
 
-}

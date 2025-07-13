@@ -28,6 +28,7 @@ private Map<String, User>   userMap           = new HashMap<>();
 private Map<String, String> securityAnswers = new HashMap<>();
 private Map<String, String> userPasswordByEmpNum = new HashMap<>();
 private Map<String, String> usernameByEmpNum = new HashMap<>();
+   
 
 
     public LoginScreen1() {
@@ -94,7 +95,6 @@ private Map<String, String> usernameByEmpNum = new HashMap<>();
         jButtonLogin = new javax.swing.JButton();
         jPasswordField = new javax.swing.JPasswordField();
         jLabelLogin2 = new javax.swing.JLabel();
-        jButton1 = new javax.swing.JButton();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
         getContentPane().setLayout(new org.netbeans.lib.awtextra.AbsoluteLayout());
@@ -131,7 +131,7 @@ private Map<String, String> usernameByEmpNum = new HashMap<>();
                 jButtonLoginActionPerformed(evt);
             }
         });
-        jPanel2.add(jButtonLogin, new org.netbeans.lib.awtextra.AbsoluteConstraints(260, 420, 120, 32));
+        jPanel2.add(jButtonLogin, new org.netbeans.lib.awtextra.AbsoluteConstraints(260, 410, 120, 32));
 
         jPasswordField.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
@@ -145,16 +145,6 @@ private Map<String, String> usernameByEmpNum = new HashMap<>();
         jLabelLogin2.setText("Employee Login");
         jPanel2.add(jLabelLogin2, new org.netbeans.lib.awtextra.AbsoluteConstraints(168, 148, -1, -1));
 
-        jButton1.setBackground(new java.awt.Color(14, 49, 113));
-        jButton1.setForeground(new java.awt.Color(255, 255, 255));
-        jButton1.setText("Reset Password ");
-        jButton1.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                jButton1ActionPerformed(evt);
-            }
-        });
-        jPanel2.add(jButton1, new org.netbeans.lib.awtextra.AbsoluteConstraints(260, 390, 120, -1));
-
         getContentPane().add(jPanel2, new org.netbeans.lib.awtextra.AbsoluteConstraints(413, 0, 590, 600));
 
         pack();
@@ -167,8 +157,8 @@ private Map<String, String> usernameByEmpNum = new HashMap<>();
 
 
         if (userCredentials.containsKey(username) && userCredentials.get(username).equals(passwordInput)) {
-            String fullName = getFullNameFromUsername(username);
-            JOptionPane.showMessageDialog(this, "Login Successful!");
+            String FullName = getFullNameFromUsername(username);
+            JOptionPane.showMessageDialog(this, "Welcome Back, " + FullName + "!");
 
             // Open MainMenu screen
             String empNum = null;
@@ -193,53 +183,6 @@ User user = userMap.get(empNum);
     private void jPasswordFieldActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jPasswordFieldActionPerformed
         jButtonLogin.doClick();  // Pressing Enter now works!
     }//GEN-LAST:event_jPasswordFieldActionPerformed
-
-    private void jButton1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton1ActionPerformed
-   
-    // Step 1: Ask for employee number
-    String empNum = JOptionPane.showInputDialog(this, "Enter your employee number:");
-
-    if (empNum == null || empNum.trim().isEmpty()) {
-        return; // Cancelled or empty
-    }
-
-    empNum = empNum.trim();
-
-    // Step 2: Check if employee exists in the system
-    if (!securityAnswers.containsKey(empNum)) {
-        JOptionPane.showMessageDialog(this, "Employee number not found.");
-        return;
-    }
-
-    // Step 3: Ask for security question answer
-    String answer = JOptionPane.showInputDialog(this, "What is your favorite animal?");
-    if (answer == null || answer.trim().isEmpty()) {
-        return; // Cancelled or empty
-    }
-
-    String storedAnswer = securityAnswers.get(empNum);
-
-    if (!storedAnswer.equalsIgnoreCase(answer.trim())) {
-        JOptionPane.showMessageDialog(this, "Incorrect answer to the security question.");
-        return;
-    }
-
-    // Step 4: Let user enter new password
-    String newPassword = JOptionPane.showInputDialog(this, "Enter your new password:");
-    if (newPassword == null || newPassword.trim().isEmpty()) {
-        return;
-    }
-
-    // Step 5: Update password in memory
-    String username = usernameByEmpNum.get(empNum);
-    userCredentials.put(username, newPassword);
-    userPasswordByEmpNum.put(empNum, newPassword);
-
-    // (Optional) Save new password to CSV here, if needed
-
-    JOptionPane.showMessageDialog(this, "Password successfully reset. You may now log in.");
-}
-    }//GEN-LAST:event_jButton1ActionPerformed
 
     private String getFullNameFromUsername(String username) {
         return userFullNames.getOrDefault(username, "Unknown User");
@@ -287,7 +230,6 @@ new LoginScreen1().setVisible(true);
     }
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
-    private javax.swing.JButton jButton1;
     private javax.swing.JButton jButtonLogin;
     private javax.swing.JLabel jLabelLogin2;
     private javax.swing.JLabel jLabelPassword;
@@ -299,5 +241,5 @@ new LoginScreen1().setVisible(true);
     private javax.swing.JLabel loginLogo;
     private javax.swing.JLabel textLogo;
     // End of variables declaration//GEN-END:variables
-
+}
 

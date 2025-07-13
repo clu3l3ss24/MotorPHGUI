@@ -28,6 +28,9 @@ private Map<String, User>   userMap           = new HashMap<>();
 private Map<String, String> securityAnswers = new HashMap<>();
 private Map<String, String> userPasswordByEmpNum = new HashMap<>();
 private Map<String, String> usernameByEmpNum = new HashMap<>();
+
+private int loginAttempts = 0;
+private final int MAX_ATTEMPTS = 3;
    
 
 
@@ -95,6 +98,7 @@ private Map<String, String> usernameByEmpNum = new HashMap<>();
         jButtonLogin = new javax.swing.JButton();
         jPasswordField = new javax.swing.JPasswordField();
         jLabelLogin2 = new javax.swing.JLabel();
+        jButtonResetPassword = new javax.swing.JButton();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
         getContentPane().setLayout(new org.netbeans.lib.awtextra.AbsoluteLayout());
@@ -111,10 +115,16 @@ private Map<String, String> usernameByEmpNum = new HashMap<>();
         loginLogo.setIcon(new javax.swing.ImageIcon(getClass().getResource("/loginLogo.png"))); // NOI18N
         jPanel1.add(loginLogo, new org.netbeans.lib.awtextra.AbsoluteConstraints(67, 137, -1, -1));
 
-        getContentPane().add(jPanel1, new org.netbeans.lib.awtextra.AbsoluteConstraints(0, 0, 410, 602));
+        getContentPane().add(jPanel1, new org.netbeans.lib.awtextra.AbsoluteConstraints(10, 20, 410, 602));
 
         jPanel2.setBackground(new java.awt.Color(255, 255, 255));
         jPanel2.setLayout(new org.netbeans.lib.awtextra.AbsoluteLayout());
+
+        jTextFieldUsername.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                jTextFieldUsernameActionPerformed(evt);
+            }
+        });
         jPanel2.add(jTextFieldUsername, new org.netbeans.lib.awtextra.AbsoluteConstraints(217, 282, 201, -1));
 
         jLabelUsername.setText("Username:");
@@ -145,7 +155,17 @@ private Map<String, String> usernameByEmpNum = new HashMap<>();
         jLabelLogin2.setText("Employee Login");
         jPanel2.add(jLabelLogin2, new org.netbeans.lib.awtextra.AbsoluteConstraints(168, 148, -1, -1));
 
-        getContentPane().add(jPanel2, new org.netbeans.lib.awtextra.AbsoluteConstraints(413, 0, 590, 600));
+        jButtonResetPassword.setBackground(new java.awt.Color(14, 49, 113));
+        jButtonResetPassword.setForeground(new java.awt.Color(255, 255, 255));
+        jButtonResetPassword.setText("Reset Password");
+        jButtonResetPassword.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                jButtonResetPasswordActionPerformed(evt);
+            }
+        });
+        jPanel2.add(jButtonResetPassword, new org.netbeans.lib.awtextra.AbsoluteConstraints(260, 380, 120, -1));
+
+        getContentPane().add(jPanel2, new org.netbeans.lib.awtextra.AbsoluteConstraints(410, 0, 590, 600));
 
         pack();
     }// </editor-fold>//GEN-END:initComponents
@@ -157,6 +177,7 @@ private Map<String, String> usernameByEmpNum = new HashMap<>();
 
 
         if (userCredentials.containsKey(username) && userCredentials.get(username).equals(passwordInput)) {
+            loginAttempts = 0;
             String FullName = getFullNameFromUsername(username);
             JOptionPane.showMessageDialog(this, "Welcome Back, " + FullName + "!");
 
@@ -174,15 +195,41 @@ User user = userMap.get(empNum);
             main.setLocationRelativeTo(null);
             this.dispose();
         } else {
+            loginAttempts++;
+        if (loginAttempts >= MAX_ATTEMPTS) {
+            int option = JOptionPane.showConfirmDialog(this,
+                "You have reached the maximum login attempts.\nWould you like to reset your password?",
+                "Login Blocked", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
+
+            if (option == JOptionPane.YES_OPTION) {
+                this.dispose();
+                new ResetPassword().setVisible(true); // ← Load your ResetPassword window here
+            } else {
+                // Reset fields but do not close
+                jTextFieldUsername.setText("");
+                jPasswordField.setText("");
+            }
+        }else {
             JOptionPane.showMessageDialog(this, "Invalid username or password.", "Login Failed", JOptionPane.ERROR_MESSAGE);
             jTextFieldUsername.setText("");
             jPasswordField.setText("");
+        }
         }
     }//GEN-LAST:event_jButtonLoginActionPerformed
 
     private void jPasswordFieldActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jPasswordFieldActionPerformed
         jButtonLogin.doClick();  // Pressing Enter now works!
     }//GEN-LAST:event_jPasswordFieldActionPerformed
+
+    private void jButtonResetPasswordActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButtonResetPasswordActionPerformed
+     this.dispose();
+     new ResetPassword().setVisible(true);
+// TODO add your handling code here:
+    }//GEN-LAST:event_jButtonResetPasswordActionPerformed
+
+    private void jTextFieldUsernameActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jTextFieldUsernameActionPerformed
+        // TODO add your handling code here:
+    }//GEN-LAST:event_jTextFieldUsernameActionPerformed
 
     private String getFullNameFromUsername(String username) {
         return userFullNames.getOrDefault(username, "Unknown User");
@@ -231,6 +278,7 @@ new LoginScreen1().setVisible(true);
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JButton jButtonLogin;
+    private javax.swing.JButton jButtonResetPassword;
     private javax.swing.JLabel jLabelLogin2;
     private javax.swing.JLabel jLabelPassword;
     private javax.swing.JLabel jLabelUsername;

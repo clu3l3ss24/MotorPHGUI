@@ -8,73 +8,79 @@ import javax.swing.table.DefaultTableModel;
 import java.util.ArrayList;
 import java.io.IOException;
 
-
 public class Attendance extends JFrame {
     private String empNo;   
 
+    // Constructor with employee number
     public Attendance(String empNo) {
-    this.empNo = empNo;
-    initComponents();
-    applyRoleRestrictions();
-    loadEmployeeName(); // ✅ Load employee name
-    employeeIDLabel.setText("Employee ID: " + empNo);
-    loadAttendanceRecords(empNo, LocalDate.now().minusMonths(1), LocalDate.now()); // ✅ Load last month's records
+        this.empNo = empNo;
+        initComponents();
+        applyRoleRestrictions();
+        loadEmployeeName(); // Load employee name
+        employeeIDLabel.setText("Employee ID: " + empNo);
 
-    // 👥 Restrict SUPPORT editing if viewing their own record
-    String loggedInEmpId = User.getLoggedInUser().getEmployeeId().trim();
-    String role = User.getLoggedInUser().getRole().trim();
+        // Load last month's records by default
+        loadAttendanceRecords(empNo, LocalDate.now().minusMonths(1), LocalDate.now());
 
-    if ("SUPPORT".equalsIgnoreCase(role) && empNo.equalsIgnoreCase(loggedInEmpId)) {
-        updateAttendanceButton.setVisible(false);
-        jButtonSave.setVisible(false);
+        // Restrict SUPPORT editing if viewing their own record
+        String loggedInEmpId = User.getLoggedInUser().getEmployeeId().trim();
+        String role = User.getLoggedInUser().getRole().trim();
+
+        if ("SUPPORT".equalsIgnoreCase(role) && empNo.equalsIgnoreCase(loggedInEmpId)) {
+            updateAttendanceButton.setVisible(false);
+            jButtonSave.setVisible(false);
+        }
     }
-}
 
+    // Default constructor
     public Attendance() {
         initComponents();
     }
     
+    // Apply role restrictions for UI
     private void applyRoleRestrictions() {
-    String role = User.getLoggedInUser().getRole();
+        String role = User.getLoggedInUser().getRole();
 
-    if ("EMPLOYEE".equalsIgnoreCase(role) || "HR".equalsIgnoreCase(role)) {
-        if (updateAttendanceButton != null) {
-            updateAttendanceButton.setVisible(false);
-        }
-        if (jButtonSave != null) {
-            jButtonSave.setVisible(false);
+        if ("EMPLOYEE".equalsIgnoreCase(role) || "HR".equalsIgnoreCase(role)) {
+            if (updateAttendanceButton != null) {
+                updateAttendanceButton.setVisible(false);
+            }
+            if (jButtonSave != null) {
+                jButtonSave.setVisible(false);
+            }
         }
     }
-}
 
+    // Load employee name into label
     private void loadEmployeeName() {
         String employeeName = getEmployeeName(empNo);
-        jLabel3.setText("Employee Name: " + employeeName); // ✅ Set name in GUI
+        jLabel3.setText("Employee Name: " + employeeName);
     } 
 
-    // ✅ Retrieve Employee Name from Data Source
+    // Retrieve employee name from EmployeeFileHandler
     private String getEmployeeName(String empNo) {
         return EmployeeFileHandler.getEmployee(Integer.parseInt(empNo))
                 .map(e -> e.getFirstName() + " " + e.getLastName())
-                .orElse("Unknown Employee"); // ✅ Handles invalid employee number
+                .orElse("Unknown Employee");
     }
 
-    // ✅ Load Attendance Records into Table
+    // Load attendance records into table
     public void loadAttendanceRecords(String empNo, LocalDate startDate, LocalDate endDate) {
-    DefaultTableModel model = (DefaultTableModel) jTableAttendance.getModel();
-    model.setRowCount(0); // ✅ Clear previous data before loading new records
+        DefaultTableModel model = (DefaultTableModel) jTableAttendance.getModel();
+        model.setRowCount(0); // Clear previous data
 
-    List<String[]> records = AttendanceFileHandler.getAttendanceRecords(empNo, startDate, endDate);
+        List<String[]> records = AttendanceFileHandler.getAttendanceRecords(empNo, startDate, endDate);
 
-    if (!records.isEmpty()) {
-        employeeIDLabel.setText("Employee ID: " + empNo); // ✅ Dynamically updates Employee ID in GUI
+        if (!records.isEmpty()) {
+            employeeIDLabel.setText("Employee ID: " + empNo);
+        }
+
+        for (String[] row : records) {
+            model.addRow(new Object[]{row[0], row[1], row[2]});
+        }
     }
 
-    for (String[] row : records) {
-        model.addRow(new Object[]{row[0], row[1], row[2]});
-    }
 
-}
     
 
 
@@ -224,7 +230,7 @@ public class Attendance extends JFrame {
     }//GEN-LAST:event_jButton1ActionPerformed
 
     private void checkAttendanceButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_checkAttendanceButtonActionPerformed
-    if (startDateLabel.getDate() != null && endDateLabel.getDate() != null) {
+        if (startDateLabel.getDate() != null && endDateLabel.getDate() != null) {
         LocalDate startDate = startDateLabel.getDate().toInstant()
                 .atZone(java.time.ZoneId.systemDefault())
                 .toLocalDate();
@@ -233,28 +239,38 @@ public class Attendance extends JFrame {
                 .atZone(java.time.ZoneId.systemDefault())
                 .toLocalDate();
 
-        // ✅ Load records
+        // Load records into table
         loadAttendanceRecords(empNo, startDate, endDate);
 
         DefaultTableModel model = (DefaultTableModel) jTableAttendance.getModel();
 
-        // 🕒 Compute daily attendance stats
-        for (int row = 0; row < model.getRowCount(); row++) {
-            String dateStr = (String) model.getValueAt(row, 0); // Date column
+        try {
+            // Read all records once for computation
+            List<AttendanceRecord> allRecords = AttendanceFileHandler.readAllAttendanceRecords();
 
-            if (dateStr != null && !dateStr.trim().isEmpty()) {
-                Map<String, Double> attendanceMinutes = AttendanceFileHandler.computeDailyAttendanceMinutes(
-                        Integer.parseInt(empNo), dateStr);
+            // Compute daily attendance stats using AttendanceCalculator
+            for (int row = 0; row < model.getRowCount(); row++) {
+                String dateStr = (String) model.getValueAt(row, 0); // Date column
 
-                model.setValueAt(attendanceMinutes.get("Late"), row, 3);      // Late = Column 3
-                model.setValueAt(attendanceMinutes.get("Overtime"), row, 4);  // Overtime = Column 4
-                model.setValueAt(attendanceMinutes.get("Undertime"), row, 5); // Undertime = Column 5
+                if (dateStr != null && !dateStr.trim().isEmpty()) {
+                    Map<String, Double> attendanceMinutes = AttendanceCalculator.computeDailyAttendanceMinutes(
+                            allRecords, Integer.parseInt(empNo), dateStr);
+
+                    model.setValueAt(attendanceMinutes.get("Late"), row, 3);      // Late = Column 3
+                    model.setValueAt(attendanceMinutes.get("Overtime"), row, 4);  // Overtime = Column 4
+                    model.setValueAt(attendanceMinutes.get("Undertime"), row, 5); // Undertime = Column 5
+                }
             }
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(this,
+                    "Error computing attendance: " + e.getMessage(),
+                    "Computation Error",
+                    JOptionPane.ERROR_MESSAGE);
         }
 
-        // 🔒 Lock the table by rebuilding a non-editable model
+        // Lock the table by rebuilding a non-editable model
         @SuppressWarnings("rawtypes")
-        Vector data = model.getDataVector(); // don't cast to Vector<Vector<Object>> to avoid build error
+        Vector data = model.getDataVector();
 
         Vector<String> columnNames = new Vector<>();
         for (int i = 0; i < model.getColumnCount(); i++) {
@@ -289,7 +305,7 @@ public class Attendance extends JFrame {
         columnNames.add(model.getColumnName(i));
     }
 
-    // ✅ Make only Time In (1) and Time Out (2) editable
+    // Make only Time In (1) and Time Out (2) editable
     DefaultTableModel editableModel = new DefaultTableModel(data, columnNames) {
         @Override
         public boolean isCellEditable(int row, int column) {
@@ -309,7 +325,7 @@ public class Attendance extends JFrame {
     DefaultTableModel model = (DefaultTableModel) jTableAttendance.getModel();
     List<AttendanceRecord> updatedRecords = new ArrayList<>();
 
-    // Extract employee ID from label (e.g., "Employee ID: 10034")
+    // Extract employee ID from label
     String labelText = employeeIDLabel.getText().trim();
     String empNo = labelText.replace("Employee ID:", "").trim();
 
@@ -327,9 +343,6 @@ public class Attendance extends JFrame {
         updatedRecords.add(record);
     }
 
-    for (AttendanceRecord r : updatedRecords) {
-    }
-
     try {
         boolean success = AttendanceFileHandler.updateAttendanceRecords(updatedRecords);
 
@@ -337,12 +350,16 @@ public class Attendance extends JFrame {
             JOptionPane.showMessageDialog(this, "Attendance records saved successfully.",
                     "Save Complete", JOptionPane.INFORMATION_MESSAGE);
 
-            // ✅ Recalculate Late/OT/Undertime after save
+            // Recalculate Late/OT/Undertime after save using AttendanceCalculator
+            List<AttendanceRecord> allRecords = AttendanceFileHandler.readAllAttendanceRecords();
             int employeeId = Integer.parseInt(empNo);
+
             for (int row = 0; row < model.getRowCount(); row++) {
                 String date = model.getValueAt(row, 0).toString().trim();
 
-                Map<String, Double> result = AttendanceFileHandler.computeDailyAttendanceMinutes(employeeId, date);
+                Map<String, Double> result = AttendanceCalculator.computeDailyAttendanceMinutes(
+                        allRecords, employeeId, date);
+
                 model.setValueAt(result.get("Late"), row, 3);       // Column 3: Late
                 model.setValueAt(result.get("Overtime"), row, 4);   // Column 4: Overtime
                 model.setValueAt(result.get("Undertime"), row, 5);  // Column 5: Undertime

@@ -13,17 +13,18 @@ public class EditEmpInfo extends javax.swing.JFrame {
     private JTextField FirstName;
 
    public EditEmpInfo(int empNum, boolean readOnly) {
-    initComponents(); 
+    initComponents(); // NetBeans initializes the UI components here
     this.empNumToEdit = empNum;
     this.readOnly = readOnly;
-    loadEmployeeData(empNumToEdit);
 
-    FirstName = new JTextField();
+
+    loadEmployeeData(empNumToEdit);
 
     if (readOnly) {
         disableEditing();
     }
 
+    // Apply listeners for real-time formatting
     addKeyListenerToField(SSS);
     addKeyListenerToField(PAGIBIG);
     addKeyListenerToField(PHILHEALTH);
@@ -33,37 +34,40 @@ public class EditEmpInfo extends javax.swing.JFrame {
 
 
     private void loadEmployeeData(int empNum) {
-    List<Employee> employees = EmployeeFileHandler.loadEmployees();  // Retrieve all employee records.
+    // Delegate searching to the EmployeeFileHandler expert
+    EmployeeFileHandler.getEmployee(empNum).ifPresentOrElse(emp -> {
+        employeeData = emp;
 
-    Optional<Employee> employeeOpt = employees.stream()
-        .filter(emp -> emp.getEmployeeNumber() == empNum)  // Find matching employee
-        .findFirst();  
+        // Populate Basic Info
+        txtLname.setText(emp.getLastName());
+        // Ensure both names are visible in the header
+        Name.setText(emp.getLastName() + ", " + emp.getFirstName()); 
+        
+        // Populate Editable Fields
+        Position.setText(emp.getPosition());
+        PhoneNum.setText(emp.getPhoneNumber());
+        Status.setText(emp.getStatus());
+        ImmSup.setText(emp.getSupervisor());
+        Address.setText(emp.getAddress());
+        Birthday.setText(emp.getBirthday());
 
-    if (employeeOpt.isPresent()) {
-        employeeData = employeeOpt.get();  // Store retrieved employee data
+        // Populate Government IDs
+        SSS.setText(emp.getSssNumber());
+        PHILHEALTH.setText(emp.getPhilHealthNumber());
+        TIN.setText(emp.getTinNumber());
+        PAGIBIG.setText(emp.getPagIbigNumber());
 
-        // ✅ Use CSV data directly without reformatting
-        txtLname.setText(employeeData.getLastName());
-        Name.setText(employeeData.getLastName() +" " +employeeData.getFirstName() );
-        Position.setText(employeeData.getPosition());
-        PhoneNum.setText(employeeData.getPhoneNumber());  // ✅ Display raw CSV data
-        Status.setText(employeeData.getStatus());
-        ImmSup.setText(employeeData.getSupervisor());
-        Address.setText(employeeData.getAddress());
-        SSS.setText(employeeData.getSssNumber());  // ✅ Display raw CSV data
-        PHILHEALTH.setText(employeeData.getPhilHealthNumber());  // ✅ Display raw CSV data
-        TIN.setText(employeeData.getTinNumber());  // ✅ Display raw CSV data
-        PAGIBIG.setText(employeeData.getPagIbigNumber());  // ✅ Display raw CSV data
-        Salary.setText(String.valueOf(employeeData.getBasicSalary()));
-        Rice.setText(String.valueOf(employeeData.getRiceSubsidy()));
-        PhoneAll.setText(String.valueOf(employeeData.getPhoneAllowance()));
-        ClothAll.setText(String.valueOf(employeeData.getClothingAllowance()));
-        Hourly.setText(String.valueOf(employeeData.getHourlyRate()));
-        Birthday.setText(employeeData.getBirthday()); // Birthday must be placed last!
-
-    } else {
-        JOptionPane.showMessageDialog(this, "Error: Employee data not found!", "Error", JOptionPane.ERROR_MESSAGE);
-    }
+        // Populate Financials (formatted to 2 decimal places)
+        Salary.setText(String.format("%.2f", emp.getBasicSalary()));
+        Rice.setText(String.format("%.2f", emp.getRiceSubsidy()));
+        PhoneAll.setText(String.format("%.2f", emp.getPhoneAllowance()));
+        ClothAll.setText(String.format("%.2f", emp.getClothingAllowance()));
+        Hourly.setText(String.format("%.2f", emp.getHourlyRate()));
+        
+    }, () -> {
+        JOptionPane.showMessageDialog(this, "Error: Employee not found!", "Error", JOptionPane.ERROR_MESSAGE);
+        this.dispose();
+    });
 }
 
     /**
@@ -126,13 +130,13 @@ public class EditEmpInfo extends javax.swing.JFrame {
         return;
     }
 
-    // ✅ Use raw input instead of applying formatIDLive() again
+    //  Use raw input instead of applying formatIDLive() again
     employeeData.setPhoneNumber(PhoneNum.getText().trim());  
 
-    // ✅ Save updates using EmployeeFileHandler
+    //  Save updates using EmployeeFileHandler
     EmployeeFileHandler.updateEmployee(employeeData);
 
-    // ✅ Refresh employee table after saving
+    //  Refresh employee table after saving
     if (EmployeeTable.getInstance() != null) {
         EmployeeTable.getInstance().refreshEmployeeTable();
     }
@@ -540,45 +544,35 @@ public class EditEmpInfo extends javax.swing.JFrame {
 
     private void SaveActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_SaveActionPerformed
                                     
-    if (employeeData == null) {
-        JOptionPane.showMessageDialog(this, "Error: No employee data loaded!", "Error", JOptionPane.ERROR_MESSAGE);
-        return;
-    }
+    if (employeeData == null) return;
 
     try {
-        // ✅ Preserve Last Name correctly
-        employeeData.setLastName(txtLname.getText().trim().isEmpty() ? employeeData.getLastName() : txtLname.getText().trim());
+        // 1. Update Text Fields (using .trim() to keep data clean)
+        employeeData.setPhoneNumber(PhoneNum.getText().trim());
+        employeeData.setAddress(Address.getText().trim());
+        employeeData.setSupervisor(ImmSup.getText().trim());
+        employeeData.setPosition(Position.getText().trim());
+        employeeData.setStatus(Status.getText().trim());
+        
+        // 2. Update Government IDs
+        employeeData.setSssNumber(SSS.getText().trim());
+        employeeData.setPhilHealthNumber(PHILHEALTH.getText().trim());
+        employeeData.setTinNumber(TIN.getText().trim());
+        employeeData.setPagIbigNumber(PAGIBIG.getText().trim());
 
-        // ✅ Ensure First Name updates only if modified and prevent duplication
-        String firstNameInput = FirstName.getText().trim();
-        if (!firstNameInput.equalsIgnoreCase(employeeData.getFirstName()) && !firstNameInput.isEmpty()) {
-            employeeData.setFirstName(firstNameInput);
-        }
-          System.out.println(firstNameInput);
-        // ✅ Handle other text fields correctly
-        employeeData.setPosition(Position.getText().trim().isEmpty() ? employeeData.getPosition() : Position.getText().trim());
-        employeeData.setPhoneNumber(PhoneNum.getText().trim().isEmpty() ? employeeData.getPhoneNumber() : PhoneNum.getText().trim());
-        employeeData.setStatus(Status.getText().trim().isEmpty() ? employeeData.getStatus() : Status.getText().trim());
-        employeeData.setSupervisor(ImmSup.getText().trim().isEmpty() ? employeeData.getSupervisor() : ImmSup.getText().trim());
-        employeeData.setAddress(Address.getText().trim().isEmpty() ? employeeData.getAddress() : Address.getText().trim().replaceAll("^\"|\"$", ""));
-        employeeData.setBirthday(Birthday.getText().trim().isEmpty() ? employeeData.getBirthday() : Birthday.getText().trim());
-        employeeData.setSssNumber(SSS.getText().trim().isEmpty() ? employeeData.getSssNumber() : SSS.getText().trim());
-        employeeData.setPhilHealthNumber(PHILHEALTH.getText().trim().isEmpty() ? employeeData.getPhilHealthNumber() : PHILHEALTH.getText().trim());
-        employeeData.setTinNumber(TIN.getText().trim().isEmpty() ? employeeData.getTinNumber() : TIN.getText().trim());
-        employeeData.setPagIbigNumber(PAGIBIG.getText().trim().isEmpty() ? employeeData.getPagIbigNumber() : PAGIBIG.getText().trim());
+        // 3. Use parseDoubleSafe to handle currency/empty fields
+        employeeData.setBasicSalary(EmployeeFileHandler.parseDoubleSafe(Salary.getText(), employeeData.getBasicSalary()));
+        employeeData.setHourlyRate(EmployeeFileHandler.parseDoubleSafe(Hourly.getText(), employeeData.getHourlyRate()));
+        employeeData.setRiceSubsidy(EmployeeFileHandler.parseDoubleSafe(Rice.getText(), employeeData.getRiceSubsidy()));
+        employeeData.setPhoneAllowance(EmployeeFileHandler.parseDoubleSafe(PhoneAll.getText(), employeeData.getPhoneAllowance()));
+        employeeData.setClothingAllowance(EmployeeFileHandler.parseDoubleSafe(ClothAll.getText(), employeeData.getClothingAllowance()));
 
-        // ✅ Handle numerical fields safely (avoids overwriting with 0.0)
-        employeeData.setBasicSalary(parseDouble(Salary.getText().trim(), employeeData.getBasicSalary()));
-        employeeData.setHourlyRate(parseDouble(Hourly.getText().trim(), employeeData.getHourlyRate()));
-        employeeData.setPhoneAllowance(parseDouble(PhoneAll.getText().trim(), employeeData.getPhoneAllowance()));
-        employeeData.setClothingAllowance(parseDouble(ClothAll.getText().trim(), employeeData.getClothingAllowance()));
-        employeeData.setRiceSubsidy(parseDouble(Rice.getText().trim(), employeeData.getRiceSubsidy()));
-
-
+        // 4. Save to CSV via Handler
         EmployeeFileHandler.updateEmployee(employeeData);
         
+        // 5. UI Feedback and Refresh
         JOptionPane.showMessageDialog(this, "Employee record updated successfully!");
-
+        
         if (EmployeeTable.getInstance() != null) {
             EmployeeTable.getInstance().refreshEmployeeTable();
         }
@@ -586,9 +580,8 @@ public class EditEmpInfo extends javax.swing.JFrame {
         setFieldsEditable(false);
         dispose();
 
-    } catch (NumberFormatException e) {
-        JOptionPane.showMessageDialog(this, "Error: Invalid numeric input!", "Data Error", JOptionPane.ERROR_MESSAGE);
-        System.err.println("ERROR: Failed to parse numerical values - " + e.getMessage());
+    } catch (Exception e) {
+        JOptionPane.showMessageDialog(this, "Error saving updates: " + e.getMessage(), "System Error", JOptionPane.ERROR_MESSAGE);
     }
 }
 
@@ -596,12 +589,17 @@ public class EditEmpInfo extends javax.swing.JFrame {
  * Helper method to safely parse double values, preserving the existing value if input is invalid or empty.
  */
 private double parseDouble(String value, double currentValue) {
+    if (value == null || value.trim().isEmpty()) {
+        return currentValue; // Added return for empty/null case
+    }
     try {
-        return value.trim().isEmpty() ? currentValue : Double.parseDouble(value.trim());
+        // Remove currency symbols and commas before parsing
+        String cleanValue = value.trim().replaceAll("[₱,]", "");
+        return Double.parseDouble(cleanValue);
     } catch (NumberFormatException e) {
-        System.err.println("ERROR: Invalid number format detected: " + value);
-        return currentValue;  // ✅ Preserve the previous value if parsing fails
-    }  
+        System.err.println("ERROR: Invalid number format: " + value);
+        return currentValue; // Return existing value if parsing fails
+    }
 
     }//GEN-LAST:event_SaveActionPerformed
 

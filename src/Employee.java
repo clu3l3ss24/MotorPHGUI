@@ -1,9 +1,5 @@
-/**
- * Represents an Employee object with relevant attributes and methods.
- * Stores employee details such as employee number, name, phone number, status, position, supervisor, salary, and allowances.
- */
 public class Employee {
-    private int employeeNumber;
+    private final int employeeNumber; 
     private String lastName;
     private String firstName;
     private String phoneNumber;
@@ -19,18 +15,15 @@ public class Employee {
     private double riceSubsidy;
     private double phoneAllowance;
     private double clothingAllowance;
-    private double grossSemiMonthlyRate;
-    private double hourlyRate;
+    private double grossSemiMonthlyRate; // Keep for compatibility
+    private double hourlyRate;           // Keep for compatibility
     private double withholdingTax;
     private String birthday;
 
-    /**
-     * Constructor initializes an Employee object with all attributes.
-     */
     public Employee(int employeeNumber, String lastName, String firstName, String phoneNumber, String status, String position, String supervisor,
-                String address, String sssNumber, String philHealthNumber, String tinNumber, String pagIbigNumber, 
-                double basicSalary, double riceSubsidy, double phoneAllowance, double clothingAllowance, 
-                double grossSemiMonthlyRate, double hourlyRate, double withholdingTax, String birthday) {
+                    String address, String sssNumber, String philHealthNumber, String tinNumber, String pagIbigNumber,
+                    double basicSalary, double riceSubsidy, double phoneAllowance, double clothingAllowance,
+                    double grossSemiMonthlyRate, double hourlyRate, double withholdingTax, String birthday) {
         this.employeeNumber = employeeNumber;
         this.lastName = lastName;
         this.firstName = firstName;
@@ -50,10 +43,13 @@ public class Employee {
         this.grossSemiMonthlyRate = grossSemiMonthlyRate;
         this.hourlyRate = hourlyRate;
         this.withholdingTax = withholdingTax;
-        this.birthday = birthday; // Ensure Birthday is last
+        this.birthday = birthday;
     }
 
-    // Getter Methods
+    public double getTotalAllowances() {
+        return riceSubsidy + phoneAllowance + clothingAllowance;
+    }
+
     public int getEmployeeNumber() { return employeeNumber; }
     public String getLastName() { return lastName; }
     public String getFirstName() { return firstName; }
@@ -75,8 +71,7 @@ public class Employee {
     public double getWithholdingTax() { return withholdingTax; }
     public String getBirthday() { return birthday; }
 
-    // Setter Methods
-    public void setEmployeeNumber(int employeeNumber) { this.employeeNumber = employeeNumber; }
+
     public void setLastName(String lastName) { this.lastName = lastName; }
     public void setFirstName(String firstName) { this.firstName = firstName; }
     public void setPhoneNumber(String phoneNumber) { this.phoneNumber = phoneNumber; }
@@ -84,50 +79,16 @@ public class Employee {
     public void setPosition(String position) { this.position = position; }
     public void setSupervisor(String supervisor) { this.supervisor = supervisor; }
     public void setAddress(String address) { this.address = address; }
-    public void setSssNumber(String sssNumber) { this.sssNumber = sssNumber; }
-    public void setPhilHealthNumber(String philHealthNumber) { this.philHealthNumber = philHealthNumber; }
-    public void setTinNumber(String tinNumber) { this.tinNumber = tinNumber; }
-    public void setPagIbigNumber(String pagIbigNumber) { this.pagIbigNumber = pagIbigNumber; }
-    public void setBasicSalary(double basicSalary) { this.basicSalary = basicSalary; }
-    public void setRiceSubsidy(double riceSubsidy) { this.riceSubsidy = riceSubsidy; }
-    public void setPhoneAllowance(double phoneAllowance) { this.phoneAllowance = phoneAllowance; }
-    public void setClothingAllowance(double clothingAllowance) { this.clothingAllowance = clothingAllowance; }
-    public void setGrossSemiMonthlyRate(double grossSemiMonthlyRate) { this.grossSemiMonthlyRate = grossSemiMonthlyRate; }
-    public void setHourlyRate(double hourlyRate) { this.hourlyRate = hourlyRate; }
-    public void setWithholdingTax(double withholdingTax) { this.withholdingTax = withholdingTax; }
+    public void setSssNumber(String sss) { this.sssNumber = sss; }
+    public void setPhilHealthNumber(String ph) { this.philHealthNumber = ph; }
+    public void setTinNumber(String tin) { this.tinNumber = tin; }
+    public void setPagIbigNumber(String pag) { this.pagIbigNumber = pag; }
+    public void setBasicSalary(double salary) { this.basicSalary = salary; }
+    public void setRiceSubsidy(double rice) { this.riceSubsidy = rice; }
+    public void setPhoneAllowance(double phone) { this.phoneAllowance = phone; }
+    public void setClothingAllowance(double cloth) { this.clothingAllowance = cloth; }
+    public void setGrossSemiMonthlyRate(double rate) { this.grossSemiMonthlyRate = rate; }
+    public void setHourlyRate(double rate) { this.hourlyRate = rate; }
+    public void setWithholdingTax(double tax) { this.withholdingTax = tax; }
     public void setBirthday(String birthday) { this.birthday = birthday; }
-
-    // ✅ New Method: Compute Total Allowances
-    public double getTotalAllowances() {
-        return riceSubsidy + phoneAllowance + clothingAllowance;
-    }
-
-    /**
-     * Overridden toString() method provides a readable representation of the employee object.
-     */
-    @Override
-    public String toString() {
-        return "Employee{" +
-               "EmpNum=" + employeeNumber +
-               ", LastName='" + lastName + "'" +
-               ", FirstName='" + firstName + "'" +
-               ", PhoneNumber='" + phoneNumber + "'" +
-               ", Status='" + status + "'" +
-               ", Position='" + position + "'" +
-               ", Supervisor='" + supervisor + "'" +
-               ", Address='" + address + "'" +
-               ", SSS='" + sssNumber + "'" +
-               ", PHILHEALTH='" + philHealthNumber + "'" +
-               ", TIN='" + tinNumber + "'" +
-               ", PAGIBIG='" + pagIbigNumber + "'" +
-               ", Basic Salary=" + basicSalary +
-               ", Rice Subsidy=" + riceSubsidy +
-               ", Phone Allowance=" + phoneAllowance +
-               ", Clothing Allowance=" + clothingAllowance +
-               ", Gross Semi-monthly Rate=" + grossSemiMonthlyRate +
-               ", Hourly Rate=" + hourlyRate +
-               ", Withholding Tax=" + withholdingTax +
-               ", Total Allowances=" + getTotalAllowances() +
-               "}";
-    }
 }

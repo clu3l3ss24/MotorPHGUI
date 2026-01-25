@@ -111,7 +111,7 @@ public class LoginScreen1 extends javax.swing.JFrame {
     private void jButtonLoginActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButtonLoginActionPerformed
         long currentTime = System.currentTimeMillis();
 
-        // ⏳ Check if user is currently blocked
+        //  Check if user is currently blocked
         if (currentTime < blockUntilTime) {
             long secondsRemaining = (blockUntilTime - currentTime) / 1000;
             JOptionPane.showMessageDialog(this,
@@ -167,7 +167,7 @@ public class LoginScreen1 extends javax.swing.JFrame {
                 proceedWithSuccessfulLogin(user);
             }
         } else {
-            // ❌ Incorrect login (existing code for password failure)
+            //  Incorrect login (existing code for password failure)
             failedAttempts++;
 
             if (failedAttempts >= 3) {
@@ -220,7 +220,7 @@ public class LoginScreen1 extends javax.swing.JFrame {
         String newPassword = null;
         boolean validPassword = false;
 
-        // 🔁 Repeat until user enters a valid password or cancels
+        //  Repeat until user enters a valid password or cancels
         while (!validPassword) {
             JPasswordField passwordField = new JPasswordField();
             passwordField.setEchoChar('*'); // Hide characters being typed

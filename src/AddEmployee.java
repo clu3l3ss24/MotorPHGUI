@@ -10,26 +10,16 @@ public class AddEmployee extends javax.swing.JFrame {
 
     public AddEmployee() {
         initComponents();
-        generateNextEmpNum();
+    
+    // Ask the handler for the next available ID
+    int nextId = EmployeeFileHandler.generateNextEmpNum();
+    jTxtEmpNum.setText(String.valueOf(nextId));
 
-
-        jTxtEmpNum.setEditable(false);
-        jTxtEmpNum.setFocusable(false);
-        jTxtEmpNum.setBackground(java.awt.Color.LIGHT_GRAY);
-    }
-
-    private void generateNextEmpNum() {
-    List<Employee> employees = EmployeeFileHandler.loadEmployees(); 
-
-
-    int newEmpNum = employees.isEmpty() ? 10001 : employees.stream()
-                           .mapToInt(Employee::getEmployeeNumber)
-                           .max().orElse(10000) + 1;
-
-    jTxtEmpNum.setText(String.valueOf(newEmpNum));
+    // Keep it non-editable so users can't break the ID sequence
     jTxtEmpNum.setEditable(false);
+    jTxtEmpNum.setFocusable(false);
+    jTxtEmpNum.setBackground(java.awt.Color.LIGHT_GRAY);
 }
-
 
     /**
      * This method is called from within the constructor to initialize the form.
@@ -252,111 +242,41 @@ public class AddEmployee extends javax.swing.JFrame {
 
     private void jButtonSubmitActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButtonSubmitActionPerformed
         try {
-
-        int empNum = Integer.parseInt(jTxtEmpNum.getText().trim());
-        String lastName = jTxtLastName.getText().trim();
-        String firstName = jTxtFirstName.getText().trim();
-        String phoneNumber = jTxtPhoneNumber.getText().trim();
-        String status = jTxtStatus.getText().trim().isEmpty() ? "NA" : jTxtStatus.getText().trim();
-        String position = jTxtPosition.getText().trim().isEmpty() ? "NA" : jTxtPosition.getText().trim();
-        String supervisor = "NA";
-        String address = "NA";
-        String birthday = "NA";
-
-        String sssNumber = jTextSSS.getText().trim().isEmpty() ? "NA" : jTextSSS.getText().trim();
-        String pagIbigNumber = jTextPAGIBIG.getText().trim().isEmpty() ? "NA" : jTextPAGIBIG.getText().trim();
-        String philHealthNumber = jTextPHILHEALTH.getText().trim().isEmpty() ? "NA" : jTextPHILHEALTH.getText().trim();
-        String tinNumber = jTextTIN.getText().trim().isEmpty() ? "NA" : jTextTIN.getText().trim();
-
-
-        if (lastName.isEmpty() || firstName.isEmpty() || phoneNumber.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "Error: Last Name, First Name, and Phone Number are required!", "Validation Error", JOptionPane.ERROR_MESSAGE);
-            return;
-        }
-
-        double basicSalary = 0.0;
-        double riceSubsidy = 0.0;
-        double phoneAllowance = 0.0;
-        double clothingAllowance = 0.0;
-        double grossSemiMonthlyRate = 0.0;
-        double hourlyRate = 0.0;
-        double withholdingTax = 0.0;
-
-
-        Employee newEmployee = new Employee(empNum, lastName, firstName, phoneNumber, status, position, supervisor,
-            address, String.valueOf(sssNumber), String.valueOf(philHealthNumber),
-            String.valueOf(tinNumber), String.valueOf(pagIbigNumber),
-            basicSalary, riceSubsidy, phoneAllowance, clothingAllowance,
-            grossSemiMonthlyRate, hourlyRate, withholdingTax, birthday);
-
-        EmployeeFileHandler.saveEmployee(newEmployee);
-        JOptionPane.showMessageDialog(this, "Employee added successfully!", "Success", JOptionPane.INFORMATION_MESSAGE);
-
-        String username = (firstName.charAt(0) + lastName).toLowerCase().replaceAll("\\s+", "");
-        String password = "Password123";
-
-        JOptionPane.showMessageDialog(this,
-            "Login for Employee " + firstName + " " + lastName + " has been created.\n" +
-            "Username: " + username + "\nPassword: " + password,
-            "Login Created", JOptionPane.INFORMATION_MESSAGE);
-
-        String[] roles = {"EMPLOYEE", "SUPPORT", "HR", "ADMIN"};
-        String accessLevel = (String) JOptionPane.showInputDialog(
-            this,
-            "Select Access Level for this Employee:",
-            "Access Assignment",
-            JOptionPane.QUESTION_MESSAGE,
-            null,
-            roles,
-            roles[0]
+        // Create the Employee object using the names currently in your AddEmployee.txt
+        Employee newEmp = new Employee(
+            Integer.parseInt(jTxtEmpNum.getText()), 
+            jTxtLastName.getText().trim(),
+            jTxtFirstName.getText().trim(),
+            jTxtPhoneNumber.getText().trim(),
+            "Regular", // Temporarily hardcoded because jComboStatus was missing
+            jTxtPosition.getText().trim(),
+            "N/A",     // Temporarily hardcoded because jTxtSupervisor was missing
+            "N/A",     // Temporarily hardcoded because jTxtAddress was missing
+            jTextSSS.getText().trim(),
+            jTextPHILHEALTH.getText().trim(),
+            jTextTIN.getText().trim(),
+            jTextPAGIBIG.getText().trim(),
+            0.0, // Basic Salary (Update this name if you find it in Design view)
+            0.0, // Rice Subsidy
+            0.0, // Phone Allowance
+            0.0, // Clothing Allowance
+            0.0, // Gross Semi-monthly
+            0.0, // Hourly Rate
+            0.0, // Withholding Tax
+            "01/01/1990" // Birthday
         );
 
-        if (accessLevel == null || accessLevel.trim().isEmpty()) {
-            JOptionPane.showMessageDialog(this, "Access level is required.", "Validation Error", JOptionPane.ERROR_MESSAGE);
-            return;
-        }
+        EmployeeFileHandler.addEmployee(newEmp);
 
-        String answer = JOptionPane.showInputDialog(
-            this,
-            "Answer to: What is your favorite food?",
-            "Security Question",
-            JOptionPane.QUESTION_MESSAGE
-        );
-
-        if (answer == null || answer.trim().isEmpty()) {
-            JOptionPane.showMessageDialog(this, "Security answer is required.", "Validation Error", JOptionPane.ERROR_MESSAGE);
-            return;
-        }
-
-        try (CSVWriter writer = new CSVWriter(new FileWriter("src/data/employee_logins.csv", true))) {
-            String[] loginRow = {
-                String.valueOf(empNum),
-                lastName,
-                firstName,
-                position,
-                supervisor,
-                username,
-                password,
-                "What is your favorite food?",
-                answer,
-                accessLevel
-            };
-            writer.writeNext(loginRow);
-        } catch (IOException ex) {
-            JOptionPane.showMessageDialog(this, "Login could not be saved: " + ex.getMessage(), "Login Error", JOptionPane.ERROR_MESSAGE);
-            return;
-        }
-
-
-        generateNextEmpNum();
+        JOptionPane.showMessageDialog(this, "Employee Added Successfully!");
+        
         if (EmployeeTable.getInstance() != null) {
-            EmployeeTable.getInstance().refreshEmployeeTable();
+            EmployeeTable.getInstance().loadEmployeeData();
         }
+        this.dispose();
 
-        dispose();
-
-    } catch (NumberFormatException e) {
-        JOptionPane.showMessageDialog(this, "Error: Invalid input! Ensure numeric values are entered correctly.", "Input Error", JOptionPane.ERROR_MESSAGE);
+    } catch (Exception e) {
+        JOptionPane.showMessageDialog(this, "Error: " + e.getMessage());
     }
     }//GEN-LAST:event_jButtonSubmitActionPerformed
 

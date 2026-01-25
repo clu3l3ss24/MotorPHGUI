@@ -9,6 +9,8 @@ import com.itextpdf.text.*;
 import com.itextpdf.text.pdf.*;
 import java.io.File;
 import javax.swing.JFileChooser;
+import java.util.List;
+
 
 
 
@@ -30,7 +32,7 @@ public class Payslip extends javax.swing.JFrame {
         loadEmployeePayslip(empNo);
     }
 
-    // 👇 This allows creating Payslip with no parameters
+    //  This allows creating Payslip with no parameters
     public Payslip() {
         initComponents();
     }
@@ -57,7 +59,7 @@ public class Payslip extends javax.swing.JFrame {
         philhealthNumber.setText(e.getPhilHealthNumber());
         pagIbigNumber.setText(e.getPagIbigNumber());
 
-        // ✅ Set Allowance Fields
+        //  Set Allowance Fields
         double phone = e.getPhoneAllowance();
         double clothing = e.getClothingAllowance();
         double rice = e.getRiceSubsidy();
@@ -66,11 +68,11 @@ public class Payslip extends javax.swing.JFrame {
         clothingAllowance.setText(String.format("₱%,.2f", clothing));
         riceSubsidy.setText(String.format("₱%,.2f", rice));
 
-        // ✅ Set Hourly Rate (Restored)
+        //  Set Hourly Rate (Restored)
         String cleanedRate = String.format("%.2f", e.getHourlyRate()).replaceAll("[^0-9.]", "");
         hourlyRate.setText(cleanedRate);
 
-        // ✅ Compute Total Benefits
+        //  Compute Total Benefits
         double totalBenefits = phone + clothing + rice;
         benefitsLabel.setText(String.format("₱%,.2f", totalBenefits));
     } else {
@@ -635,17 +637,17 @@ public class Payslip extends javax.swing.JFrame {
 
     private void downloadButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_downloadButtonActionPerformed
        try {
-        // ✅ Check if Employee ID exists
+        //  Check if Employee ID exists
         if (empNo == null || empNo.trim().isEmpty()) {
             JOptionPane.showMessageDialog(this, "Employee ID is missing!", "Error", JOptionPane.ERROR_MESSAGE);
             return;
         }
 
-        // ✅ Define Payslip Name (Example: "Payslip_10001_July_2024.pdf")
+        //  Define Payslip Name (Example: "Payslip_10001_July_2024.pdf")
         String selectedMonthYear = getMonthYearString(monthSelect.getMonth() + 1, yearSelect.getYear());
         String fileName = String.format("Payslip_%s_%s.pdf", empNo, selectedMonthYear);
 
-        // ✅ Open File Chooser Dialog with Default File Name
+        //  Open File Chooser Dialog with Default File Name
         JFileChooser fileChooser = new JFileChooser();
         fileChooser.setDialogTitle("Choose Save Location");
         fileChooser.setSelectedFile(new File(fileName)); // Sets default filename
@@ -657,22 +659,22 @@ public class Payslip extends javax.swing.JFrame {
 
         File saveFile = fileChooser.getSelectedFile(); // ✅ Get chosen file path
 
-        // ✅ Capture Screenshot of JFrame
+        //  Capture Screenshot of JFrame
         BufferedImage screenshot = new BufferedImage(getWidth(), getHeight(), BufferedImage.TYPE_INT_RGB);
         Graphics2D g = screenshot.createGraphics();
         paint(g); // Render JFrame into image
         g.dispose();
 
-        // ✅ Save Screenshot as Temporary PNG
+        //  Save Screenshot as Temporary PNG
         File tempImage = new File("payslip_temp.png");
         ImageIO.write(screenshot, "png", tempImage);
 
-        // ✅ Create PDF Document
+        //  Create PDF Document
         Document document = new Document();
         PdfWriter.getInstance(document, new FileOutputStream(saveFile));
         document.open();
 
-        // ✅ Add Screenshot to PDF
+        //  Add Screenshot to PDF
         com.itextpdf.text.Image image = com.itextpdf.text.Image.getInstance("payslip_temp.png");
         image.scaleToFit(PageSize.A4.getWidth() - 40, PageSize.A4.getHeight() - 40); // Adjust size to fit page
         document.add(image);
@@ -693,56 +695,74 @@ public class Payslip extends javax.swing.JFrame {
         return;
     }
 
-    int selectedMonth = monthSelect.getMonth() + 1;
+    // Get month and year from UI controls
+    int selectedMonth = monthSelect.getMonth() + 1; // JMonthChooser is 0-based (Jan=0)
     int selectedYear = yearSelect.getYear();
-    String monthYear = getMonthYearString(selectedMonth, selectedYear);
 
-    // ✅ Fetch worked hours & overtime from AttendanceFileHandler
-    double[] hours = AttendanceFileHandler.computeMonthlyHoursAndOT(Integer.parseInt(empNo), monthYear);
+    try {
+        // Fetch worked hours & overtime using AttendanceCalculator
+        List<AttendanceRecord> allRecords = AttendanceFileHandler.readAllAttendanceRecords();
+        double[] hours = AttendanceCalculator.computeMonthlyHoursAndOT(
+                allRecords,
+                Integer.parseInt(empNo),
+                selectedMonth,
+                selectedYear
+        );
 
-    // ✅ Ensure hourlyRate is cleaned before parsing
-    String cleanedRate = hourlyRate.getText().replaceAll("[^0-9.]", "");
-    double hourlyRateValue = Double.parseDouble(cleanedRate);
+        // Ensure hourlyRate is cleaned before parsing
+        String cleanedRate = hourlyRate.getText().replaceAll("[^0-9.]", "");
+        double hourlyRateValue = Double.parseDouble(cleanedRate);
 
-    // ✅ Compute gross income: (hoursWorked × hourlyRate) + overtimePay
-    double grossIncome = SalaryComputation.computeGrossIncome(hours[0], hours[1] * hourlyRateValue * 1.5, hourlyRateValue);
+        // Compute gross income: (hoursWorked × hourlyRate) + overtimePay
+        double overtimePay = SalaryComputation.computeOvertimePay(hours[1], hourlyRateValue);
+        double grossIncome = SalaryComputation.computeGrossIncome(hours[0], overtimePay, hourlyRateValue);
 
-    // ✅ Fetch Government Contributions from SalaryComputation
-    double sssPremium = SalaryComputation.getSSSPremium(grossIncome);
-    double philHealthPremium = SalaryComputation.getPhilHealthPremium(grossIncome);
-    double pagIbigPremium = SalaryComputation.getPagIbigPremium(grossIncome);
-    double withholdingTax = SalaryComputation.computeWithholdingTax(grossIncome - (sssPremium + philHealthPremium + pagIbigPremium));
+        // Fetch Government Contributions from SalaryComputation
+        double sssPremium = SalaryComputation.getSSSPremium(grossIncome);
+        double philHealthPremium = SalaryComputation.getPhilHealthPremium(grossIncome);
+        double pagIbigPremium = SalaryComputation.getPagIbigPremium(grossIncome);
+        double withholdingTax = SalaryComputation.computeWithholdingTax(
+                grossIncome - (sssPremium + philHealthPremium + pagIbigPremium));
 
-    // ✅ Compute Total Benefits
-    double totalBenefits = Double.parseDouble(benefitsLabel.getText().replaceAll("[^0-9.]", ""));
+        // Compute Total Benefits
+        double totalBenefits = Double.parseDouble(benefitsLabel.getText().replaceAll("[^0-9.]", ""));
 
-    // ✅ Compute Total Deductions
-    double totalDeductions = sssPremium + philHealthPremium + pagIbigPremium + withholdingTax;
+        // Compute Total Deductions
+        double totalDeductions = sssPremium + philHealthPremium + pagIbigPremium + withholdingTax;
 
-    // ✅ Compute Net Pay
-    double netPay = grossIncome + totalBenefits - totalDeductions;
+        // Compute Net Pay
+        double netPay = grossIncome + totalBenefits - totalDeductions;
 
-    // ✅ Compute Pay Date (Next Month's 15th)
-    LocalDate payDate = LocalDate.of(selectedYear, selectedMonth, 1).plusMonths(1).withDayOfMonth(15);
-    String formattedPayDate = payDate.format(DateTimeFormatter.ofPattern("MMMM dd, yyyy"));
+        // Compute Pay Date (Next Month's 15th)
+        LocalDate payDate = LocalDate.of(selectedYear, selectedMonth, 1)
+                                     .plusMonths(1)
+                                     .withDayOfMonth(15);
+        String formattedPayDate = payDate.format(DateTimeFormatter.ofPattern("MMMM dd, yyyy"));
 
-    // ✅ Update Payslip Fields
-    hoursWorked.setText(String.format("%.2f", hours[0]));
-    overtime.setText(String.format("₱%,.2f", hours[1] * hourlyRateValue * 1.5)); // Assuming OT is paid at 1.5x
-    grossIncomeLabel.setText(String.format("₱%,.2f", grossIncome));
+        // Update Payslip Fields
+        hoursWorked.setText(String.format("%.2f", hours[0]));
+        overtime.setText(String.format("₱%,.2f", overtimePay)); // OT at 1.5x
+        grossIncomeLabel.setText(String.format("₱%,.2f", grossIncome));
 
-    // ✅ Display Government Contributions
-    sssPremiumLabel.setText(String.format("₱%,.2f", sssPremium));
-    philhealthContributionLabel.setText(String.format("₱%,.2f", philHealthPremium));
-    pagibigContributionLabel.setText(String.format("₱%,.2f", pagIbigPremium));
-    witholdingTaxLabel.setText(String.format("₱%,.2f", withholdingTax));
-    totalDeductionsLabel.setText(String.format("₱%,.2f", totalDeductions));
+        // Display Government Contributions
+        sssPremiumLabel.setText(String.format("₱%,.2f", sssPremium));
+        philhealthContributionLabel.setText(String.format("₱%,.2f", philHealthPremium));
+        pagibigContributionLabel.setText(String.format("₱%,.2f", pagIbigPremium));
+        witholdingTaxLabel.setText(String.format("₱%,.2f", withholdingTax));
+        totalDeductionsLabel.setText(String.format("₱%,.2f", totalDeductions));
 
-    // ✅ Display Net Pay
-    netPayLabel.setText(String.format("₱%,.2f", netPay));
+        // Display Net Pay
+        netPayLabel.setText(String.format("₱%,.2f", netPay));
 
-    // ✅ Display Pay Date
-    payDateLabel.setText(formattedPayDate); // ✅ Final computed pay date (15th of next month)
+        // Display Pay Date
+        payDateLabel.setText(formattedPayDate);
+
+    } catch (Exception e) {
+        JOptionPane.showMessageDialog(this,
+                "Error computing payslip: " + e.getMessage(),
+                "Computation Error",
+                JOptionPane.ERROR_MESSAGE);
+    }
 
     }//GEN-LAST:event_checkPayslipButtonActionPerformed
     

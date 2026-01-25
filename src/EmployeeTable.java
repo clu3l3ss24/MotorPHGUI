@@ -13,10 +13,11 @@ import java.awt.Dimension;
 public class EmployeeTable extends javax.swing.JFrame {
     private String selectedEmpNum; 
 
-    AddEmployee addemp = new AddEmployee();
-    ViewEmpInfo viewinfo = new ViewEmpInfo(); 
+    private AddEmployee addemp = new AddEmployee(); 
+    private ViewEmpInfo viewinfo = new ViewEmpInfo(); 
 
-    public static EmployeeTable instance;
+    private static EmployeeTable instance;
+
 
     /**
      * Standard constructor — used by HR, ADMIN, etc.
@@ -48,7 +49,7 @@ public class EmployeeTable extends javax.swing.JFrame {
     jLabelEmpInfo.setText(labelText);   
     applyRoleRestrictions();           
     
-    // 🔘 Set jButtonView label based on view mode
+    //  Set jButtonView label based on view mode
     if ("Employee Attendance".equalsIgnoreCase(labelText)) {
         jButtonView.setText("View Attendance");
         jButtonView.setVisible(true);
@@ -57,7 +58,7 @@ public class EmployeeTable extends javax.swing.JFrame {
         jButtonView.setVisible(true);
     }
 
-    // ❎ Ensure window closes cleanly
+    //  Ensure window closes cleanly
     setDefaultCloseOperation(javax.swing.WindowConstants.DISPOSE_ON_CLOSE);
     addWindowListener(new java.awt.event.WindowAdapter() {
         @Override
@@ -66,9 +67,9 @@ public class EmployeeTable extends javax.swing.JFrame {
         }
     });
 
-    configureTableModel();  // 🧱 Initialize table columns
+    configureTableModel();  // ?Initialize table columns
 
-    // 🗃️ Load employee data based on label + role
+    // ️ Load employee data based on label + role
     String role = User.getLoggedInUser().getRole().trim();
 
     if ("Employee Payslip".equalsIgnoreCase(labelText)) {
@@ -85,7 +86,7 @@ public class EmployeeTable extends javax.swing.JFrame {
         loadSupervisedEmployees(supervisorId); // Fallback for any other label
     }
 
-    adjustTableSettings(); // 🧩 Final formatting and column alignment
+    adjustTableSettings(); // Final formatting and column alignment
 }
 
 
@@ -147,6 +148,10 @@ public class EmployeeTable extends javax.swing.JFrame {
         return instance;
     }
 
+    
+    public String getSelectedEmpNum() { 
+        return selectedEmpNum; 
+    }
     /**
      * Table column config.
      */
@@ -169,7 +174,7 @@ public class EmployeeTable extends javax.swing.JFrame {
     /**
      * Loads full employee list — used by HR, ADMIN, etc.
      */
-    private void loadEmployeeData() {
+    public void loadEmployeeData() {
         DefaultTableModel model = (DefaultTableModel) jTableEmpTable.getModel();
         model.setRowCount(0);
 
@@ -189,7 +194,7 @@ public class EmployeeTable extends javax.swing.JFrame {
     }
 
     /**
-     * 🔐 Loads only employees supervised by the specified user
+     *  Loads only employees supervised by the specified user
      */
     private void loadSupervisedEmployees(String supervisorId) {
     DefaultTableModel model = (DefaultTableModel) jTableEmpTable.getModel();
@@ -456,23 +461,27 @@ public class EmployeeTable extends javax.swing.JFrame {
 
     if (selectedRow != -1) {
         String empNumber = jTableEmpTable.getValueAt(selectedRow, 0).toString().trim();
+        
+        // Store the selected employee number in the class field
+        selectedEmpNum = empNumber;
+
         String viewMode = jLabelEmpInfo.getText().trim();
 
         try {
             if ("Employee Attendance".equalsIgnoreCase(viewMode)) {
-                // 👥 SUPPORT view → open Attendance screen
+                // SUPPORT view → open Attendance screen
                 Attendance attendanceWindow = new Attendance(empNumber);
                 attendanceWindow.setVisible(true);
                 attendanceWindow.setLocationRelativeTo(null);
 
             } else if ("Employee Payslip".equalsIgnoreCase(viewMode)) {
-                // 💳 ADMIN/SUPPORT → open Payslip screen
+                // ADMIN/SUPPORT → open Payslip screen
                 Payslip payslipWindow = new Payslip(empNumber);
                 payslipWindow.setVisible(true);
                 payslipWindow.setLocationRelativeTo(null);
 
             } else {
-                // 📝 Default view → open EditEmpInfo in read-only mode
+                // Default view → open EditEmpInfo in read-only mode
                 int empNumInt = Integer.parseInt(empNumber); // Validate number format
                 EditEmpInfo editEmpInfoWindow = new EditEmpInfo(empNumInt, true); 
                 editEmpInfoWindow.setVisible(true);
@@ -496,6 +505,10 @@ public class EmployeeTable extends javax.swing.JFrame {
 
     // Retrieve Employee Number safely
     String empNumStr = jTableEmpTable.getValueAt(selectedRow, 0).toString().trim();
+
+    // Store the selected employee number in the class field
+    selectedEmpNum = empNumStr;
+
     try {
         int empNum = Integer.parseInt(empNumStr);
 
@@ -529,6 +542,9 @@ public class EmployeeTable extends javax.swing.JFrame {
 
     // Retrieve Employee Number of the selected row
     int empNumToDelete = Integer.parseInt(jTableEmpTable.getValueAt(selectedRow, 0).toString());
+
+    // Store the selected employee number in the class field
+    selectedEmpNum = String.valueOf(empNumToDelete);
 
     // Call EmployeeFileHandler to remove employee from CSV
     EmployeeFileHandler.deleteEmployee(empNumToDelete);

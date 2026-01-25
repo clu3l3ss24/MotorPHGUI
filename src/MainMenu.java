@@ -10,6 +10,9 @@
 import javax.swing.JOptionPane;
 import java.util.List;
 import java.util.ArrayList;
+import java.io.IOException;
+import com.opencsv.exceptions.CsvValidationException;
+
 
 
 /**
@@ -302,9 +305,24 @@ public class MainMenu extends javax.swing.JFrame {
 
     private void jButtonTimeinActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButtonTimeinActionPerformed
         if (currentUser != null) {
-        AttendanceFileHandler.logTimeIn(currentUser);
+        try {
+            AttendanceFileHandler.logTimeIn(currentUser);
+            JOptionPane.showMessageDialog(this,
+                "Time-in recorded successfully.",
+                "Success",
+                JOptionPane.INFORMATION_MESSAGE);
+        } catch (IOException e) {
+            JOptionPane.showMessageDialog(this,
+                "Error logging time in: " + e.getMessage(),
+                "Log Error",
+                JOptionPane.ERROR_MESSAGE);
+            e.printStackTrace();
+        }
     } else {
-        JOptionPane.showMessageDialog(this, "User session not found. Please log in again.", "Error", JOptionPane.ERROR_MESSAGE);
+        JOptionPane.showMessageDialog(this,
+            "User session not found. Please log in again.",
+            "Error",
+            JOptionPane.ERROR_MESSAGE);
     }
         
     }//GEN-LAST:event_jButtonTimeinActionPerformed
@@ -333,7 +351,7 @@ public class MainMenu extends javax.swing.JFrame {
     String role = User.getLoggedInUser().getRole();
 
     if ("ADMIN".equalsIgnoreCase(role)) {
-        // 👨‍💼 Admin users get full employee list view
+        //  Admin users get full employee list view
         EmployeeTable employeeTable = new EmployeeTable(null, "Employee Payslip");
         employeeTable.setVisible(true);
         employeeTable.setLocationRelativeTo(null);
@@ -377,9 +395,24 @@ public class MainMenu extends javax.swing.JFrame {
 
     private void jButtonTimeoutActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButtonTimeoutActionPerformed
         if (currentUser != null) {
-        AttendanceFileHandler.logTimeOut(currentUser);
+        try {
+            AttendanceFileHandler.logTimeOut(currentUser);
+            JOptionPane.showMessageDialog(this,
+                "Time-out recorded successfully.",
+                "Success",
+                JOptionPane.INFORMATION_MESSAGE);
+        } catch (IOException | com.opencsv.exceptions.CsvValidationException e) {
+            JOptionPane.showMessageDialog(this,
+                "Error logging time out: " + e.getMessage(),
+                "Log Error",
+                JOptionPane.ERROR_MESSAGE);
+            e.printStackTrace();
+        }
     } else {
-        JOptionPane.showMessageDialog(this, "User session not found. Please log in again.", "Error", JOptionPane.ERROR_MESSAGE);
+        JOptionPane.showMessageDialog(this,
+            "User session not found. Please log in again.",
+            "Error",
+            JOptionPane.ERROR_MESSAGE);
     }
     }//GEN-LAST:event_jButtonTimeoutActionPerformed
 

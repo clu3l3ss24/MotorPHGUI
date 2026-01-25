@@ -1,106 +1,130 @@
 import com.opencsv.CSVReader;
+import com.opencsv.CSVWriter;
+import com.opencsv.exceptions.CsvException;
 import com.opencsv.exceptions.CsvValidationException;
 import java.io.*;
 import java.util.*;
 
+/**
+ * Handles all storage and retrieval logic for employee login credentials.
+ * Implements encapsulation by hiding CSV column indices and file paths.
+ */
 public class UserDatabase {
     private static final String LOGIN_FILE = "src/data/employee_logins.csv";
+    private static final int COL_EMP_ID = 0;
+    private static final int COL_LAST_NAME = 1;
+    private static final int COL_FIRST_NAME = 2;
+    private static final int COL_USERNAME = 5;
+    private static final int COL_PASSWORD = 6;
+    private static final int COL_SEC_QUESTION = 7;
+    private static final int COL_SEC_ANSWER = 8;
+    private static final int COL_ROLE = 9;
 
-    // ✅ Authenticate user and capture role
+    /**
+     * Authenticates user and returns a User object if successful.
+     */
     public static User authenticate(String username, String password) {
         try (CSVReader reader = new CSVReader(new FileReader(LOGIN_FILE))) {
             String[] row;
             reader.readNext(); // Skip header
 
             while ((row = reader.readNext()) != null) {
-                if (row.length >= 10) {
-                    String storedUsername = row[5].trim();
-                    String storedPassword = row[6].trim();
-
-                    if (storedUsername.equals(username) && storedPassword.equals(password)) {
-                        return new User(
-                            row[0].trim(), // EmpNum
-                            row[2].trim(), // FirstName
-                            row[1].trim(), // LastName
-                            row[5].trim(), // Username
-                            row[6].trim(), // Password
-                            row[9].trim()  // Access level (Role)
-                        );
+                if (row.length > COL_PASSWORD) {
+                    if (row[COL_USERNAME].trim().equals(username) && 
+                        row[COL_PASSWORD].trim().equals(password)) {
+                        return mapRowToUser(row);
                     }
                 }
             }
-        } catch (IOException | CsvValidationException e) {
-            System.err.println("Login error: " + e.getMessage());
+        } catch (IOException | CsvException e) {
+            System.err.println("Database Error: " + e.getMessage());
         }
         return null;
     }
 
-    // ✅ Existing: Security Question
+    /**
+     * Fetches the security question for the given Employee ID.
+     */
     public static String getSecurityQuestion(String empId) {
         try (CSVReader reader = new CSVReader(new FileReader(LOGIN_FILE))) {
             String[] row;
             reader.readNext(); // Skip header
             while ((row = reader.readNext()) != null) {
-                if (row.length >= 9 && row[0].trim().equals(empId)) {
-                    return row[7].trim();
+                if (row.length > COL_SEC_QUESTION && row[COL_EMP_ID].trim().equals(empId)) {
+                    return row[COL_SEC_QUESTION].trim();
                 }
             }
-        } catch (IOException | CsvValidationException e) {
-            System.err.println("Error reading security question: " + e.getMessage());
+        } catch (IOException | CsvException e) {
+            System.err.println("Error reading question: " + e.getMessage());
         }
         return null;
     }
 
-    // ✅ Existing: Verify Security Answer
+    /**
+     * Verifies the answer provided for the security question.
+     */
     public static boolean verifySecurityAnswer(String empId, String inputAnswer) {
         try (CSVReader reader = new CSVReader(new FileReader(LOGIN_FILE))) {
             String[] row;
             reader.readNext(); // Skip header
             while ((row = reader.readNext()) != null) {
-                if (row.length >= 9 && row[0].trim().equals(empId)) {
-                    return row[8].trim().equalsIgnoreCase(inputAnswer.trim());
+                if (row.length > COL_SEC_ANSWER && row[COL_EMP_ID].trim().equals(empId)) {
+                    return row[COL_SEC_ANSWER].trim().equalsIgnoreCase(inputAnswer.trim());
                 }
             }
-        } catch (IOException | CsvValidationException e) {
+        } catch (IOException | CsvException e) {
             System.err.println("Error verifying answer: " + e.getMessage());
         }
         return false;
     }
 
-    // ✅ Existing: Update Password
+    /**
+     * Updates the password for a specific employee ID.
+     */
     public static boolean updatePassword(String empId, String newPassword) {
-        List<String[]> updatedRows = new ArrayList<>();
-        boolean success = false;
+        List<String[]> allRows = readAllRows();
+        boolean found = false;
 
+        for (String[] row : allRows) {
+            if (row.length > COL_PASSWORD && row[COL_EMP_ID].trim().equals(empId)) {
+                row[COL_PASSWORD] = newPassword;
+                found = true;
+                break;
+            }
+        }
+
+        if (found) {
+            writeAllRows(allRows);
+        }
+        return found;
+    }
+
+    private static User mapRowToUser(String[] row) {
+        return new User(
+            row[COL_EMP_ID].trim(),
+            row[COL_FIRST_NAME].trim(),
+            row[COL_LAST_NAME].trim(),
+            row[COL_USERNAME].trim(),
+            row[COL_PASSWORD].trim(),
+            row[COL_ROLE].trim()
+        );
+    }
+
+    private static List<String[]> readAllRows() {
+        List<String[]> rows = new ArrayList<>();
         try (CSVReader reader = new CSVReader(new FileReader(LOGIN_FILE))) {
-            String[] header = reader.readNext();
-            if (header != null) updatedRows.add(header);
-
-            String[] row;
-            while ((row = reader.readNext()) != null) {
-                if (row.length >= 9 && row[0].trim().equals(empId)) {
-                    row[6] = newPassword;
-                    success = true;
-                }
-                updatedRows.add(row);
-            }
-        } catch (IOException | CsvValidationException e) {
-            System.err.println("Error reading for password update: " + e.getMessage());
-            return false;
+            rows.addAll(reader.readAll());
+        } catch (IOException | CsvException e) {
+            System.err.println("Error reading CSV: " + e.getMessage());
         }
+        return rows;
+    }
 
-        if (success) {
-            try (BufferedWriter writer = new BufferedWriter(new FileWriter(LOGIN_FILE))) {
-                for (String[] row : updatedRows) {
-                    writer.write(String.join(",", row));
-                    writer.newLine();
-                }
-            } catch (IOException e) {
-                System.err.println("Error writing updated CSV: " + e.getMessage());
-                return false;
-            }
+    private static void writeAllRows(List<String[]> rows) {
+        try (CSVWriter writer = new CSVWriter(new FileWriter(LOGIN_FILE))) {
+            writer.writeAll(rows);
+        } catch (IOException e) {
+            System.err.println("Error writing CSV: " + e.getMessage());
         }
-
-        return success;
     }
 }
